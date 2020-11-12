@@ -37,6 +37,8 @@ class ADSBXWorker(pytak.MessageWorker):
         self.poll_interval: int = int(poll_interval or
                                       adsbxcot.DEFAULT_POLL_INTERVAL)
         self.api_key: str = api_key
+        self.cot_renderer = adsbxcot.adsbx_to_cot
+        self.cot_classifier = pytak.faa_to_cot_type
 
     async def handle_message(self, aircraft: list) -> None:
         if not aircraft:
@@ -46,7 +48,11 @@ class ADSBXWorker(pytak.MessageWorker):
         _lac = len(aircraft)
         _acn = 1
         for craft in aircraft:
-            event = adsbxcot.adsbx_to_cot(craft, stale=self.cot_stale)
+            event = adsbxcot.adsbx_to_cot(
+                craft,
+                stale=self.cot_stale,
+                classifier=cot_classifier
+            )
             if not event:
                 self._logger.debug(f"Empty CoT Event for craft={craft}")
                 _acn += 1

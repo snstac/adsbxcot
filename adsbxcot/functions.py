@@ -15,7 +15,8 @@ __copyright__ = "Copyright 2020 Orion Labs, Inc."
 __license__ = "Apache License, Version 2.0"
 
 
-def adsbx_to_cot(craft: dict, stale: int = None) -> pycot.Event:
+def adsbx_to_cot(craft: dict, stale: int = None,
+                 classifier = None) -> pycot.Event:
     """
     Transforms an ADS-B Exchange Aircraft Object to a Cursor-on-Target PLI.
     """
@@ -36,7 +37,8 @@ def adsbx_to_cot(craft: dict, stale: int = None) -> pycot.Event:
     else:
         callsign = icao_hex
 
-    cot_type = pytak.faa_to_cot_type(craft.get("hex"), None, flight)
+    cot_type = classifier(
+        craft.get("hex"), craft.get("category"), flight)
 
     point = pycot.Point()
     point.lat = lat
