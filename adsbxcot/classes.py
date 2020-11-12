@@ -51,7 +51,7 @@ class ADSBXWorker(pytak.MessageWorker):
             event = adsbxcot.adsbx_to_cot(
                 craft,
                 stale=self.cot_stale,
-                classifier=cot_classifier
+                classifier=self.cot_classifier
             )
             if not event:
                 self._logger.debug(f"Empty CoT Event for craft={craft}")
