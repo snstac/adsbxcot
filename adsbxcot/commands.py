@@ -28,30 +28,31 @@ __license__ = "Apache License, Version 2.0"
 
 
 async def main(opts):
-    loop = get_running_loop()
-
-    tasks: set = set()
-    event_queue: asyncio.Queue = asyncio.Queue(loop=loop)
-
+    loop = asyncio.get_running_loop()
+    tx_queue: asyncio.Queue = asyncio.Queue()
+    rx_queue: asyncio.Queue = asyncio.Queue()
     cot_url: urllib.parse.ParseResult = urllib.parse.urlparse(opts.cot_url)
+
+    # Create our CoT Event Queue Worker
+    reader, writer = await pytak.protocol_factory(cot_url)
+    write_worker = pytak.EventTransmitter(tx_queue, writer)
+    read_worker = pytak.EventReceiver(rx_queue, reader)
+
     adsbx_url: urllib.parse.ParseResult = urllib.parse.urlparse(opts.adsbx_url)
 
-    eventworker = await pytak.eventworker_factory(
-        cot_url, event_queue, opts.fts_token)
-
-    adsbxworker = adsbxcot.ADSBXWorker(
-        event_queue=event_queue,
+    message_worker = adsbxcot.ADSBXWorker(
+        event_queue=tx_queue,
         url=adsbx_url,
         api_key=opts.api_key,
         poll_interval=opts.poll_interval,
         cot_stale=opts.cot_stale
     )
 
-    tasks.add(asyncio.ensure_future(adsbxworker.run()))
-    tasks.add(asyncio.ensure_future(eventworker.run()))
+    await tx_queue.put(adsbxcot.hello_event())
 
     done, pending = await asyncio.wait(
-        tasks, return_when=asyncio.FIRST_COMPLETED)
+        set([message_worker.run(), read_worker.run(), write_worker.run()]),
+        return_when=asyncio.FIRST_COMPLETED)
 
     for task in done:
         print(f"Task completed: {task}")
