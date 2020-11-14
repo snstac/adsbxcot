@@ -69,6 +69,9 @@ def cli():
     parser.add_argument(
         '-K', '--fts_token', help='FreeTAKServer REST API Token.'
     )
+    parser.add_argument(
+        '-S', '--cot_stale', help='CoT Stale period, in seconds',
+    )
 
     parser.add_argument(
         '-A', '--adsbx_url', help='ADS-B Exchange API URL.',
@@ -80,9 +83,6 @@ def cli():
     )
     parser.add_argument(
         '-I', '--poll_interval', help='ADS-B Exchange API Polling Interval',
-    )
-    parser.add_argument(
-        '-S', '--cot_stale', help='CoT Stale period, in seconds',
     )
     opts = parser.parse_args()
 

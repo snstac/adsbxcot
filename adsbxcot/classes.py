@@ -33,7 +33,9 @@ class ADSBXWorker(pytak.MessageWorker):
 
     def __init__(self, event_queue: asyncio.Queue, url: str, api_key: str,
                  cot_stale: int = None, poll_interval: int = None):
-        super().__init__(event_queue, url, cot_stale)
+        super().__init__(event_queue)
+        self.url = url
+        self.cot_stale = cot_stale
         self.poll_interval: int = int(poll_interval or
                                       adsbxcot.DEFAULT_POLL_INTERVAL)
         self.api_key: str = api_key
