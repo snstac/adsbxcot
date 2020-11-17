@@ -91,8 +91,7 @@ def adsbx_to_cot(craft: dict, stale: int = None,
     detail.uid = uid
     detail.contact = contact
     detail.track = track
-    # Not supported by FTS 1.1?
-    # detail.remarks = remarks
+    detail.remarks = remarks
 
     event = pycot.Event()
     event.version = "2.0"
