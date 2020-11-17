@@ -85,7 +85,7 @@ def adsbx_to_cot(craft: dict, stale: int = None,
     if bool(os.environ.get('DEBUG')):
         _remarks = f"{_remarks} via adsbxcot"
 
-    remarks.value = _remark
+    remarks.value = _remarks
 
     detail = pycot.Detail()
     detail.uid = uid
