@@ -4,6 +4,7 @@
 """ADS-B Exchange Cursor-on-Target Gateway Functions."""
 
 import datetime
+import os
 
 import pycot
 import pytak
@@ -74,11 +75,17 @@ def adsbx_to_cot(craft: dict, stale: int = None,
         track.speed = "9999999.0"
 
     remarks = pycot.Remarks()
-    _remark = (f"ICAO24: {icao_hex} Squawk: {craft.get('squawk')}")
+    _remarks = f"Squawk: {craft.get('Squawk')} Category: {craft.get('category')}"
+
     if flight:
-        remarks.value = f"Flight: {flight} " + _remark
+        _remarks = f"{icao_hex}({flight}) {_remarks}"
     else:
-        remarks.value = _remark
+        _remarks = f"{icao_hex} {_remarks}"
+
+    if bool(os.environ.get('DEBUG')):
+        _remarks = f"{_remarks} via adsbxcot"
+
+    remarks.value = _remark
 
     detail = pycot.Detail()
     detail.uid = uid
