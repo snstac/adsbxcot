@@ -15,7 +15,7 @@ import setuptools
 __title__ = "adsbxcot"
 __version__ = "1.2.0"
 __author__ = "Greg Albrecht W2GMD <oss@undef.net>"
-__copyright__ = "Copyright 2020 Orion Labs, Inc."
+__copyright__ = "Copyright 2021 Orion Labs, Inc."
 __license__ = "Apache License, Version 2.0"
 
 
@@ -40,7 +40,7 @@ setuptools.setup(
     author='Greg Albrecht',
     author_email='oss@undef.net',
     package_data={'': ['LICENSE']},
-    license=open('LICENSE').read(),
+    license="Apache License, Version 2.0",
     long_description=open('README.rst').read(),
     zip_safe=False,
     include_package_data=True,
