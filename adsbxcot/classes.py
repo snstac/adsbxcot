@@ -50,6 +50,7 @@ class ADSBXWorker(pytak.MessageWorker):
         _lac = len(aircraft)
         _acn = 1
         for craft in aircraft:
+            self._logger.debug("craft=%s", craft)
             event = adsbxcot.adsbx_to_cot(
                 craft,
                 stale=self.cot_stale,
@@ -72,7 +73,16 @@ class ADSBXWorker(pytak.MessageWorker):
             _acn += 1
 
     async def _get_adsbx_feed(self):
-        headers = {"api-auth": self.api_key}
+
+        # Support for either direct ADSBX API, or RapidAPI
+        if "rapidapi" in self.url.geturl():
+            headers = {
+                "x-rapidapi-key": self.api_key,
+                "x-rapidapi-host": "adsbexchange-com1.p.rapidapi.com"
+            }
+        else:
+            headers = {"api-auth": self.api_key}
+        self._logger.warn("headers=%s", headers)
         async with aiohttp.ClientSession() as session:
             response = await session.request(
                 method="GET",

@@ -30,7 +30,7 @@ def adsbx_to_cot(craft: dict, stale: int = None,
     if lat is None or lon is None:
         return None
 
-    icao_hex = craft.get("hex").upper()
+    icao_hex = craft.get("hex", craft.get("icao")).upper()
     name = f"ICAO-{icao_hex}"
     flight = craft.get("flight", "").strip()
     if flight:
@@ -39,7 +39,7 @@ def adsbx_to_cot(craft: dict, stale: int = None,
         callsign = icao_hex
 
     cot_type = classifier(
-        craft.get("hex"), craft.get("category"), flight)
+        icao_hex, craft.get("category"), flight)
 
     point = pycot.Point()
     point.lat = lat
@@ -99,7 +99,7 @@ def adsbx_to_cot(craft: dict, stale: int = None,
     event.uid = name
     event.time = time
     event.start = time
-    event.stale = time + datetime.timedelta(seconds=stale)
+    event.stale = time + datetime.timedelta(seconds=int(stale))
     event.how = "m-g"
     event.point = point
     event.detail = detail
