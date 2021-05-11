@@ -7,7 +7,7 @@ import logging
 import os
 
 __author__ = "Greg Albrecht W2GMD <oss@undef.net>"
-__copyright__ = "Copyright 2020 Orion Labs, Inc."
+__copyright__ = "Copyright 2021 Orion Labs, Inc."
 __license__ = "Apache License, Version 2.0"
 
 
@@ -22,5 +22,5 @@ else:
     LOG_FORMAT = logging.Formatter(
         ('%(asctime)s adsbxcot %(levelname)s - %(message)s'))
 
-DEFAULT_INTERVAL: int = 30
-DEFAULT_STALE: int = 120
+DEFAULT_POLL_INTERVAL: int = 30
+DEFAULT_COT_STALE: int = 120

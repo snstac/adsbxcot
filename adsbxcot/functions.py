@@ -3,143 +3,129 @@
 
 """ADS-B Exchange Cursor-on-Target Gateway Functions."""
 
+import csv
 import datetime
 import os
+import xml.etree.ElementTree
 
-import pycot
 import pytak
 
 import adsbxcot.constants
 
 __author__ = "Greg Albrecht W2GMD <oss@undef.net>"
-__copyright__ = "Copyright 2020 Orion Labs, Inc."
+__copyright__ = "Copyright 2021 Orion Labs, Inc."
 __license__ = "Apache License, Version 2.0"
 
 
-def adsbx_to_cot(craft: dict, stale: int = None,
-                 classifier = None) -> pycot.Event:
+def adsbx_to_cot(craft: dict, stale: int = None, classifier=None, known_craft: dict={}) -> str:
     """
     Transforms an ADS-B Exchange Aircraft Object to a Cursor-on-Target PLI.
     """
     time = datetime.datetime.now(datetime.timezone.utc)
-    stale = stale or adsbxcot.constants.DEFAULT_STALE
+    cot_stale = stale or adsbxcot.constants.DEFAULT_STALE
 
-    lat = craft.get('lat')
-    lon = craft.get('lon')
-
+    lat = craft.get("lat")
+    lon = craft.get("lon")
     if lat is None or lon is None:
         return None
 
-    icao_hex = craft.get("hex", craft.get("icao")).upper()
-    name = f"ICAO-{icao_hex}"
-    flight = craft.get("flight", "").strip()
-    if flight:
-        callsign = flight
+    icao_hex = craft.get("hex", craft.get("icao")).strip().upper()
+    flight = craft.get("flight")
+    craft_type = craft.get("t", "").strip().upper()
+    reg = craft.get("r", "").strip().upper()
+
+    name = known_craft.get("CALLSIGN")
+    if name:
+        callsign = name
     else:
-        callsign = icao_hex
+        name = f"ICAO-{icao_hex}"
+        if flight:
+            callsign = "-".join([flight.strip().upper(), reg, craft_type])
+        else:
+            callsign = "-".join([reg, craft_type])
 
-    cot_type = classifier(
-        icao_hex, craft.get("category"), flight)
+    category = craft.get("category")
+    cot_type = known_craft.get("COT")
+    if not cot_type:
+        known_type = known_craft.get("TYPE").strip().upper()
+        if known_type:
+            if known_type in "FIXED WING":
+                category = "1"
+            elif known_type in "HELICOPTER":
+                category = "7"
+            elif known_type in "UAS":
+                category = "14"
+        cot_type = classifier(icao_hex, category, flight)
 
-    point = pycot.Point()
-    point.lat = lat
-    point.lon = lon
-    point.ce = craft.get("nac_p", "9999999.0")
-    point.le = craft.get("nac_v", "9999999.0")
+    point = xml.etree.ElementTree.Element("point")
+    point.set("lat", str(lat))
+    point.set("lon", str(lon))
+    point.set("ce", str(craft.get("nac_p", "9999999.0")))
+    point.set("le", str(craft.get("nac_v", "9999999.0")))
 
     # alt_geom: geometric (GNSS / INS) altitude in feet referenced to the
     #           WGS84 ellipsoid
     alt_geom = int(craft.get("alt_geom", 0))
     if alt_geom:
-        point.hae = alt_geom * 0.3048
+        point.set("hae", str(alt_geom * 0.3048))
     else:
-        point.hae = "9999999.0"
+        point.set("hae", str("9999999.0"))
 
-    uid = pycot.UID()
-    uid.Droid = name
+    uid = xml.etree.ElementTree.Element("UID")
+    uid.set("Droid", name)
 
-    contact = pycot.Contact()
-    contact.callsign = callsign
-    # Not supported by FTS 1.1?
-    # if flight:
-    #    contact.hostname = f'https://flightaware.com/live/flight/{flight}'
+    contact = xml.etree.ElementTree.Element("contact")
+    contact.set("callsign", str(callsign))
 
-    track = pycot.Track()
-    track.course = craft.get("track", "9999999.0")
+    track = xml.etree.ElementTree.Element("track")
+    track.set("course", str(craft.get("track", "9999999.0")))
 
     # gs: ground speed in knots
     gs = int(craft.get("gs", 0))
     if gs:
-        track.speed = gs * 0.514444
+        track.set("speed", str(gs * 0.514444))
     else:
-        track.speed = "9999999.0"
+        track.set("speed", str("9999999.0"))
 
-    remarks = pycot.Remarks()
-    _remarks = f"Squawk: {craft.get('Squawk')} Category: {craft.get('category')}"
+    detail = xml.etree.ElementTree.Element("detail")
+    detail.set("uid", name)
+    detail.append(uid)
+    detail.append(contact)
+    detail.append(track)
 
-    if flight:
-        _remarks = f"{icao_hex}({flight}) {_remarks}"
-    else:
-        _remarks = f"{icao_hex} {_remarks}"
+    remarks = xml.etree.ElementTree.Element("remarks")
 
-    if bool(os.environ.get('DEBUG')):
-        _remarks = f"{_remarks} via adsbxcot"
+    _remarks = f"{callsign} Squawk: {craft.get('Squawk')} Category: {craft.get('category')} via adsbxcot"
 
-    remarks.value = _remarks
+    detail.set("remarks", _remarks)
+    remarks.text = _remarks
+    detail.append(remarks)
 
-    detail = pycot.Detail()
-    detail.uid = uid
-    detail.contact = contact
-    detail.track = track
-    detail.remarks = remarks
+    root = xml.etree.ElementTree.Element("event")
+    root.set("version", "2.0")
+    root.set("type", cot_type)
+    root.set("uid", name)
+    root.set("how", "m-g")
+    root.set("time", time.strftime(pytak.ISO_8601_UTC))
+    root.set("start", time.strftime(pytak.ISO_8601_UTC))
+    root.set("stale", (time + datetime.timedelta(seconds=int(cot_stale))).strftime(pytak.ISO_8601_UTC))
+    root.append(point)
+    root.append(detail)
 
-    event = pycot.Event()
-    event.version = "2.0"
-    event.event_type = cot_type
-    event.uid = name
-    event.time = time
-    event.start = time
-    event.stale = time + datetime.timedelta(seconds=int(stale))
-    event.how = "m-g"
-    event.point = point
-    event.detail = detail
-
-    return event
+    return xml.etree.ElementTree.tostring(root)
 
 
-def hello_event():
-    time = datetime.datetime.now(datetime.timezone.utc)
-    name = 'adsbxcot'
-    callsign = 'adsbxcot'
+def read_filter_csv(csv_file: str) -> list:
+    """Reads the FILTER_CSV file into a `list`"""
+    all_rows = []
+    with open(csv_file) as csv_fd:
+        reader = csv.DictReader(csv_fd)
+        for row in reader:
+            all_rows.append(row)
+    return all_rows
 
-    point = pycot.Point()
-    point.lat = 0.0
-    point.lon = 0.0
 
-    # FIXME: These values are static, should be dynamic.
-    point.ce = '9999999.0'
-    point.le = '9999999.0'
-    point.hae = '9999999.0'
-
-    uid = pycot.UID()
-    uid.Droid = name
-
-    contact = pycot.Contact()
-    contact.callsign = callsign
-
-    detail = pycot.Detail()
-    detail.uid = uid
-    detail.contact = contact
-
-    event = pycot.Event()
-    event.version = '2.0'
-    event.event_type = 'a-u-G'
-    event.uid = name
-    event.time = time
-    event.start = time
-    event.stale = time + datetime.timedelta(hours=1)
-    event.how = 'h-g-i-g-o'
-    event.point = point
-    event.detail = detail
-
-    return event
+def get_filtered_csv_regs(csv_file: str) -> list:
+    filtered_csv = read_filter_csv(csv_file)
+    regs = [x["REG"] for x in filtered_csv]
+    return regs

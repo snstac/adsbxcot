@@ -6,7 +6,10 @@
 import aiohttp
 import argparse
 import asyncio
+import collections
 import concurrent
+import configparser
+import logging
 import os
 import sys
 import urllib
@@ -15,7 +18,6 @@ import pytak
 
 import adsbxcot
 
-
 # Python 3.6 support:
 if sys.version_info[:2] >= (3, 7):
     from asyncio import get_running_loop
@@ -23,32 +25,33 @@ else:
     from asyncio import _get_running_loop as get_running_loop
 
 __author__ = "Greg Albrecht W2GMD <oss@undef.net>"
-__copyright__ = "Copyright 2020 Orion Labs, Inc."
+__copyright__ = "Copyright 2021 Orion Labs, Inc."
 __license__ = "Apache License, Version 2.0"
 
 
 async def main(opts):
-    loop = asyncio.get_running_loop()
     tx_queue: asyncio.Queue = asyncio.Queue()
     rx_queue: asyncio.Queue = asyncio.Queue()
-    cot_url: urllib.parse.ParseResult = urllib.parse.urlparse(opts.cot_url)
+    cot_url: urllib.parse.ParseResult = urllib.parse.urlparse(opts.get("COT_URL"))
 
     # Create our CoT Event Queue Worker
     reader, writer = await pytak.protocol_factory(cot_url)
     write_worker = pytak.EventTransmitter(tx_queue, writer)
     read_worker = pytak.EventReceiver(rx_queue, reader)
 
-    adsbx_url: urllib.parse.ParseResult = urllib.parse.urlparse(opts.adsbx_url)
+    adsbx_url: urllib.parse.ParseResult = urllib.parse.urlparse(opts.get("ADSBX_URL"))
 
     message_worker = adsbxcot.ADSBXWorker(
         event_queue=tx_queue,
         url=adsbx_url,
-        api_key=opts.api_key,
-        poll_interval=opts.poll_interval,
-        cot_stale=opts.cot_stale
+        api_key=opts.get("API_KEY"),
+        poll_interval=opts.get("POLL_INTERVAL"),
+        cot_stale=opts.get("COT_STALE"),
+        filters=opts.get("FILTERS"),
+        filter_csv=opts.get("FILTER_CSV")
     )
 
-    await tx_queue.put(adsbxcot.hello_event())
+    await tx_queue.put(pytak.hello_event("adsbxcot"))
 
     done, pending = await asyncio.wait(
         set([message_worker.run(), read_worker.run(), write_worker.run()]),
@@ -63,36 +66,77 @@ def cli():
 
     parser = argparse.ArgumentParser()
 
+    parser.add_argument("-c", "--CONFIG_FILE", dest="CONFIG_FILE", default="config.ini", type=str)
     parser.add_argument(
-        '-U', '--cot_url', help='URL to CoT Destination.',
-        required=True
+        "-d", "--DEBUG", dest="DEBUG", default=False, action="store_true", help="Enable DEBUG logging")
+    parser.add_argument(
+        '-U',
+        '--COT_URL',
+        dest="COT_URL",
+        help='URL to CoT Destination. Must be a URL, e.g. tcp:1.2.3.4:1234 or tls:...:1234, etc.'
     )
     parser.add_argument(
-        '-K', '--fts_token', help='FreeTAKServer REST API Token.'
-    )
-    parser.add_argument(
-        '-S', '--cot_stale', help='CoT Stale period, in seconds',
+        '-S',
+        '--COT_STALE',
+        dest="COT_STALE",
+        help='CoT Stale period, in seconds',
+        default=adsbxcot.DEFAULT_COT_STALE
     )
 
     parser.add_argument(
-        '-A', '--adsbx_url', help='ADS-B Exchange API URL.',
-        required=True
+        '-A', '--ADSBX_URL', help='ADS-B Exchange API URL.',
     )
     parser.add_argument(
-        '-X', '--api_key', help='ADS-B Exchange API Key',
-        required=True
+        '-X', '--API_KEY', help='ADS-B Exchange API Key',
     )
     parser.add_argument(
-        '-I', '--poll_interval', help='ADS-B Exchange API Polling Interval',
+        '-I',
+        '--POLL_INTERVAL',
+        dest="POLL_INTERVAL",
+        help='For JSON API: Polling Interval',
     )
-    opts = parser.parse_args()
+    parser.add_argument(
+        "-F",
+        '--FILTER_FILE',
+        dest="FILTER_FILE",
+        help="FILTER_FILE",
+    )
+    namespace = parser.parse_args()
+    cli_args = {k: v for k, v in vars(namespace).items() if v is not None}
+
+    # Read config file:
+    config_file = cli_args.get("CONFIG_FILE")
+    logging.info("Reading configuration from %s", config_file)
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    # Combined command-line args with config file:
+    combined_config = collections.ChainMap(cli_args, os.environ, config["adsbxcot"])
+
+    if combined_config.get("FILTER_FILE"):
+        filter_file = combined_config.get("FILTER_FILE")
+        print(filter_file)
+        logging.info("Reading filters from %s", filter_file)
+        filters = configparser.ConfigParser()
+        filters.read(filter_file)
+        combined_config = collections.ChainMap(combined_config, {"FILTERS": filters})
+
+    if not combined_config.get("COT_URL"):
+        print("Please specify a CoT Destination URL, for example: '-U tcp:takserver.example.com:8087'")
+        print("See -h for help.")
+        sys.exit(1)
+
+    if not combined_config.get("ADSBX_URL"):
+        print("Please specify a ADSB Exchange Source URL, for example: '-A https://adsbx.com/...'")
+        print("See -h for help.")
+        sys.exit(1)
 
     if sys.version_info[:2] >= (3, 7):
-        asyncio.run(main(opts), debug=bool(os.environ.get('DEBUG')))
+        asyncio.run(main(combined_config), debug=combined_config.get("DEBUG"))
     else:
-        loop = asyncio.get_event_loop()
+        loop = get_event_loop()
         try:
-            loop.run_until_complete(main(opts))
+            loop.run_until_complete(main(combined_config))
         finally:
             loop.close()
 
