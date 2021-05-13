@@ -32,19 +32,21 @@ class ADSBXWorker(pytak.MessageWorker):
 
     """Reads ADS-B Exchange Data, renders to CoT, and puts on queue."""
 
-    def __init__(self, event_queue: asyncio.Queue, url: str, api_key: str,
-                 cot_stale: int = None, poll_interval: int = None, filters: dict = None, filter_csv: str = None):
+    def __init__(self, event_queue: asyncio.Queue, opts):
         super().__init__(event_queue)
-        self.url = url
-        self.cot_stale = cot_stale
-        self.poll_interval: int = int(poll_interval or
-                                      adsbxcot.DEFAULT_POLL_INTERVAL)
-        self.api_key: str = api_key
+
+        self.url: urllib.parse.ParseResult = urllib.parse.urlparse(opts.get("ADSBX_URL"))
+        self.cot_stale = opts.get("COT_STALE")
+        self.poll_interval: int = int(opts.get("POLL_INTERVAL") or adsbxcot.DEFAULT_POLL_INTERVAL)
+        self.api_key: str = opts.get("API_KEY")
+        self.filters = opts.get("FILTERS")
+        self.known_craft = opts.get("KNOWN_CRAFT")
+        self.known_craft_key = opts.get("KNOWN_CRAFT_KEY") or "HEX"
+
         self.cot_renderer = adsbxcot.adsbx_to_cot
-        self.cot_classifier = pytak.faa_to_cot_type
-        self.filters = filters
-        self.filter_csv = filter_csv
-        self.csv_filters = None
+        self.cot_classifier = pytak.adsb_to_cot_type
+
+        self.known_craft_db = None
 
     async def handle_message(self, aircraft: list) -> None:
         """
@@ -63,35 +65,47 @@ class ADSBXWorker(pytak.MessageWorker):
         _acn = 1
         for craft in aircraft:
             # self._logger.debug("craft=%s", craft)
-            icao = craft.get("hex", "").strip().upper()
+            icao = craft.get("hex", craft.get("icao")).strip().upper()
+            flight = craft.get("flight", "").strip().upper()
+            reg = craft.get("r", "").strip().upper()
+
             if "~" in icao:
                 continue
 
-            if self.filters:
-                if "ICAO" in self.filters:
-                    if icao not in self.filters.get("ICAO", "include").split(','):
-                        continue
-                    if icao in self.filters.get("ICAO", "exclude"):
-                        continue
-                elif "FLIGHT" in self.filters:
-                    flight = craft.get("flight", "").strip().upper()
-                    if flight not in self.filters.get("FLIGHT", "include"):
-                        continue
-                    if flight in self.filters.get("FLIGHT", "exclude"):
-                        continue
-                elif "REG" in self.filters:
-                    reg = craft.get("r", "").strip().upper()
-                    if "include" in self.filters["REG"] and reg not in self.filters.get("REG", "include"):
-                        continue
-                    if "exclude" in self.filters["REG"] and reg in self.filters.get("REG", "exclude"):
-                        continue
-
+            filter_type = ''
+            filter_key = ''
+            filter_src = ''
             known_craft = {}
-            if self.csv_filters:
-                reg = craft.get("r", "").strip().upper()
-                for all_craft in self.csv_filters:
-                    if reg in all_craft["REG"].strip().upper():
-                        known_craft = all_craft
+
+            if self.filters or self.known_craft_db:
+                filter_src = self.filters or self.known_craft_key
+
+            if filter_src:
+                if "HEX" in filter_src:
+                    filter_type = "HEX"
+                    filter_key = icao
+                elif "FLIGHT" in filter_src:
+                    filter_type = "FLIGHT"
+                    filter_key = flight
+                elif "REG" in filter_src:
+                    filter_type = "REG"
+                    filter_key = reg
+
+                if filter_type and filter_key and not self.known_craft_db:
+                    if "include" in self.filters[filter_type] and filter_key not in self.filters.get(filter_type,
+                                                                                                     "include"):
+                        continue
+                    if "exclude" in self.filters[filter_type] and filter_key in self.filters.get(filter_type,
+                                                                                                 "exclude"):
+                        continue
+                elif self.known_craft_db:
+                    for all_craft in self.known_craft_db:
+                        if filter_key in all_craft[self.known_craft_key].strip().upper():
+                            known_craft = all_craft
+
+            # If we're using a known_craft csv and this craft wasn't found, skip:
+            if self.known_craft_db and not known_craft:
+                continue
 
             event = adsbxcot.adsbx_to_cot(
                 craft,
@@ -144,12 +158,13 @@ class ADSBXWorker(pytak.MessageWorker):
         self._logger.info(
             "Running ADSBXWorker with URL '%s'", self.url.geturl())
 
-        if self.filter_csv is not None:
-            self._logger.info("Using Filter CSV File: '%s'", self.filter_csv)
-            self.csv_filters = adsbxcot.read_filter_csv(self.filter_csv)
+        if self.known_craft is not None:
+            self._logger.info("Using KNOWN_CRAFT File: '%s'", self.known_craft)
+            self.known_craft_db = adsbxcot.read_known_craft(self.known_craft)
             self.filters = configparser.ConfigParser()
-            self.filters.add_section("REG")
-            self.filters["REG"]["include"] = str([x["REG"].strip().upper() for x in self.csv_filters])
+            self.filters.add_section(self.known_craft_key)
+            self.filters[self.known_craft_key]["include"] = \
+                str([x[self.known_craft_key].strip().upper() for x in self.known_craft_db])
 
         while 1:
             await self._get_adsbx_feed()

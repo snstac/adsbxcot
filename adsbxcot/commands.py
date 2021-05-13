@@ -39,17 +39,7 @@ async def main(opts):
     write_worker = pytak.EventTransmitter(tx_queue, writer)
     read_worker = pytak.EventReceiver(rx_queue, reader)
 
-    adsbx_url: urllib.parse.ParseResult = urllib.parse.urlparse(opts.get("ADSBX_URL"))
-
-    message_worker = adsbxcot.ADSBXWorker(
-        event_queue=tx_queue,
-        url=adsbx_url,
-        api_key=opts.get("API_KEY"),
-        poll_interval=opts.get("POLL_INTERVAL"),
-        cot_stale=opts.get("COT_STALE"),
-        filters=opts.get("FILTERS"),
-        filter_csv=opts.get("FILTER_CSV")
-    )
+    message_worker = adsbxcot.ADSBXWorker(tx_queue, opts)
 
     await tx_queue.put(pytak.hello_event("adsbxcot"))
 
@@ -62,7 +52,7 @@ async def main(opts):
 
 
 def cli():
-    """Command Line interface for ADS-B Cursor-on-Target Gateway."""
+    """Command Line interface for ADS-B Exchange Cursor-on-Target Gateway."""
 
     parser = argparse.ArgumentParser()
 
@@ -82,7 +72,6 @@ def cli():
         help='CoT Stale period, in seconds',
         default=adsbxcot.DEFAULT_COT_STALE
     )
-
     parser.add_argument(
         '-A', '--ADSBX_URL', help='ADS-B Exchange API URL.',
     )
@@ -97,9 +86,15 @@ def cli():
     )
     parser.add_argument(
         "-F",
-        '--FILTER_FILE',
-        dest="FILTER_FILE",
-        help="FILTER_FILE",
+        '--FILTER_CONFIG',
+        dest="FILTER_CONFIG",
+        help="FILTER_CONFIG",
+    )
+    parser.add_argument(
+        "-K",
+        '--KNOWN_CRAFT',
+        dest="KNOWN_CRAFT",
+        help="KNOWN_CRAFT",
     )
     namespace = parser.parse_args()
     cli_args = {k: v for k, v in vars(namespace).items() if v is not None}
@@ -113,12 +108,12 @@ def cli():
     # Combined command-line args with config file:
     combined_config = collections.ChainMap(cli_args, os.environ, config["adsbxcot"])
 
-    if combined_config.get("FILTER_FILE"):
-        filter_file = combined_config.get("FILTER_FILE")
+    if combined_config.get("FILTER_CONFIG"):
+        filter_config = combined_config.get("FILTER_CONFIG")
         print(filter_file)
-        logging.info("Reading filters from %s", filter_file)
+        logging.info("Reading FILTER_CONFIG from %s", filter_config)
         filters = configparser.ConfigParser()
-        filters.read(filter_file)
+        filters.read(filter_config)
         combined_config = collections.ChainMap(combined_config, {"FILTERS": filters})
 
     if not combined_config.get("COT_URL"):

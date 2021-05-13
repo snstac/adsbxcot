@@ -6,6 +6,7 @@
 import csv
 import datetime
 import os
+import platform
 import xml.etree.ElementTree
 
 import pytak
@@ -17,7 +18,7 @@ __copyright__ = "Copyright 2021 Orion Labs, Inc."
 __license__ = "Apache License, Version 2.0"
 
 
-def adsbx_to_cot(craft: dict, stale: int = None, classifier=None, known_craft: dict={}) -> str:
+def adsbx_to_cot(craft: dict, stale: int = None, classifier=None, known_craft: dict = {}) -> str:
     """
     Transforms an ADS-B Exchange Aircraft Object to a Cursor-on-Target PLI.
     """
@@ -29,12 +30,12 @@ def adsbx_to_cot(craft: dict, stale: int = None, classifier=None, known_craft: d
     if lat is None or lon is None:
         return None
 
-    icao_hex = craft.get("hex", craft.get("icao")).strip().upper()
-    flight = craft.get("flight")
-    craft_type = craft.get("t", "").strip().upper()
-    reg = craft.get("r", "").strip().upper()
+    icao_hex: str = craft.get("hex", craft.get("icao")).strip().upper()
+    flight: str = craft.get("flight")
+    craft_type: str = craft.get("t", "").strip().upper()
+    reg: str = craft.get("r", "").strip().upper()
 
-    name = known_craft.get("CALLSIGN")
+    name: str = known_craft.get("CALLSIGN")
     if name:
         callsign = name
     else:
@@ -47,7 +48,7 @@ def adsbx_to_cot(craft: dict, stale: int = None, classifier=None, known_craft: d
     category = craft.get("category")
     cot_type = known_craft.get("COT")
     if not cot_type:
-        known_type = known_craft.get("TYPE").strip().upper()
+        known_type = known_craft.get("TYPE", "").strip().upper()
         if known_type:
             if known_type in "FIXED WING":
                 category = "1"
@@ -55,6 +56,8 @@ def adsbx_to_cot(craft: dict, stale: int = None, classifier=None, known_craft: d
                 category = "7"
             elif known_type in "UAS":
                 category = "14"
+            else:
+                category = known_type
         cot_type = classifier(icao_hex, category, flight)
 
     point = xml.etree.ElementTree.Element("point")
@@ -95,7 +98,8 @@ def adsbx_to_cot(craft: dict, stale: int = None, classifier=None, known_craft: d
 
     remarks = xml.etree.ElementTree.Element("remarks")
 
-    _remarks = f"{callsign} Squawk: {craft.get('Squawk')} Category: {craft.get('category')} via adsbxcot"
+    _remarks = (
+        f"{callsign} Squawk: {craft.get('Squawk')} Category: {craft.get('category')} via adsbxcot@{platform.node()}")
 
     detail.set("remarks", _remarks)
     remarks.text = _remarks
@@ -104,7 +108,7 @@ def adsbx_to_cot(craft: dict, stale: int = None, classifier=None, known_craft: d
     root = xml.etree.ElementTree.Element("event")
     root.set("version", "2.0")
     root.set("type", cot_type)
-    root.set("uid", name)
+    root.set("uid", f"ICAO-{icao_hex}")
     root.set("how", "m-g")
     root.set("time", time.strftime(pytak.ISO_8601_UTC))
     root.set("start", time.strftime(pytak.ISO_8601_UTC))
@@ -115,7 +119,7 @@ def adsbx_to_cot(craft: dict, stale: int = None, classifier=None, known_craft: d
     return xml.etree.ElementTree.tostring(root)
 
 
-def read_filter_csv(csv_file: str) -> list:
+def read_known_craft(csv_file: str) -> list:
     """Reads the FILTER_CSV file into a `list`"""
     all_rows = []
     with open(csv_file) as csv_fd:
