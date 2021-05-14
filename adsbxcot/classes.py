@@ -99,9 +99,9 @@ class ADSBXWorker(pytak.MessageWorker):
                                                                                                  "exclude"):
                         continue
                 elif self.known_craft_db:
-                    for all_craft in self.known_craft_db:
-                        if filter_key in all_craft[self.known_craft_key].strip().upper():
-                            known_craft = all_craft
+                    for a_known_craft in self.known_craft_db:
+                        if filter_key and filter_key in a_known_craft[self.known_craft_key].strip().upper():
+                            known_craft = a_known_craft
 
             # If we're using a known_craft csv and this craft wasn't found, skip:
             if self.known_craft_db and not known_craft:
