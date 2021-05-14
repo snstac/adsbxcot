@@ -106,7 +106,10 @@ def cli():
     config.read(config_file)
 
     # Combined command-line args with config file:
-    combined_config = collections.ChainMap(cli_args, os.environ, config["adsbxcot"])
+    if "adsbxcot" in config:
+        combined_config = collections.ChainMap(cli_args, os.environ, config["adsbxcot"])
+    else:
+        combined_config = collections.ChainMap(cli_args, os.environ)
 
     if combined_config.get("FILTER_CONFIG"):
         filter_config = combined_config.get("FILTER_CONFIG")
