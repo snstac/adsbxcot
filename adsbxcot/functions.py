@@ -31,7 +31,7 @@ def adsbx_to_cot(craft: dict, stale: int = None, classifier=None, known_craft: d
         return None
 
     icao_hex: str = craft.get("hex", craft.get("icao")).strip().upper()
-    flight: str = craft.get("flight")
+    flight: str = craft.get("flight", "").strip().upper()
     craft_type: str = craft.get("t", "").strip().upper()
     reg: str = craft.get("r", "").strip().upper()
 
@@ -99,7 +99,8 @@ def adsbx_to_cot(craft: dict, stale: int = None, classifier=None, known_craft: d
     remarks = xml.etree.ElementTree.Element("remarks")
 
     _remarks = (
-        f"{callsign} Squawk: {craft.get('Squawk')} Category: {craft.get('category')} via adsbxcot@{platform.node()}")
+        f"{callsign} ICAO: {icao_hex} REG: {reg} Flight: {flight} Type: {craft_type} Squawk: {craft.get('Squawk')} "
+        f"Category: {craft.get('category')} (via adsbxcot@{platform.node()})")
 
     detail.set("remarks", _remarks)
     remarks.text = _remarks
