@@ -113,7 +113,6 @@ def cli():
 
     if combined_config.get("FILTER_CONFIG"):
         filter_config = combined_config.get("FILTER_CONFIG")
-        print(filter_file)
         logging.info("Reading FILTER_CONFIG from %s", filter_config)
         filters = configparser.ConfigParser()
         filters.read(filter_config)
