@@ -13,7 +13,7 @@ import sys
 import setuptools
 
 __title__ = "adsbxcot"
-__version__ = "1.3.1"
+__version__ = "1.4.0b1"
 __author__ = "Greg Albrecht W2GMD <oss@undef.net>"
 __copyright__ = "Copyright 2021 Orion Labs, Inc."
 __license__ = "Apache License, Version 2.0"
@@ -46,6 +46,7 @@ setuptools.setup(
     include_package_data=True,
     install_requires=[
         'pytak >= 3.0.0',
+        'aircot',
         'requests',
         'aiohttp',
     ],

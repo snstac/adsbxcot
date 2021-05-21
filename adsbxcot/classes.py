@@ -39,14 +39,17 @@ class ADSBXWorker(pytak.MessageWorker):
         self.cot_stale = opts.get("COT_STALE")
         self.poll_interval: int = int(opts.get("POLL_INTERVAL") or adsbxcot.DEFAULT_POLL_INTERVAL)
         self.api_key: str = opts.get("API_KEY")
+
+        self.include_tisb = bool(opts.get("INCLUDE_TISB")) or False
+        self.include_all_craft = bool(opts.get("INCLUDE_ALL_CRAFT")) or False
+
         self.filters = opts.get("FILTERS")
         self.known_craft = opts.get("KNOWN_CRAFT")
         self.known_craft_key = opts.get("KNOWN_CRAFT_KEY") or "HEX"
 
-        self.cot_renderer = adsbxcot.adsbx_to_cot
-        self.cot_classifier = pytak.adsb_to_cot_type
-
+        self.filter_type = ""
         self.known_craft_db = None
+
 
     async def handle_message(self, aircraft: list) -> None:
         """
@@ -65,52 +68,49 @@ class ADSBXWorker(pytak.MessageWorker):
         _acn = 1
         for craft in aircraft:
             # self._logger.debug("craft=%s", craft)
+
             icao = craft.get("hex", craft.get("icao")).strip().upper()
             flight = craft.get("flight", "").strip().upper()
             reg = craft.get("r", "").strip().upper()
 
-            if "~" in icao:
+            if "~" in icao and not self.include_tisb:
                 continue
 
-            filter_type = ''
-            filter_key = ''
-            filter_src = ''
             known_craft = {}
 
-            if self.filters or self.known_craft_db:
-                filter_src = self.filters or self.known_craft_key
+            if self.filter_type:
+                if self.filter_type == "HEX":
+                    filter_key: str = icao
+                elif self.filter_type == "FLIGHT":
+                    filter_key: str = flight
+                elif self.filter_type == "REG":
+                    filter_key: str = reg
+                else:
+                    filter_key: str = ""
 
-            if filter_src:
-                if "HEX" in filter_src:
-                    filter_type = "HEX"
-                    filter_key = icao
-                elif "FLIGHT" in filter_src:
-                    filter_type = "FLIGHT"
-                    filter_key = flight
-                elif "REG" in filter_src:
-                    filter_type = "REG"
-                    filter_key = reg
+                # self._logger.debug("filter_key=%s", filter_key)
 
-                if filter_type and filter_key and not self.known_craft_db:
-                    if "include" in self.filters[filter_type] and filter_key not in self.filters.get(filter_type,
+                if self.known_craft_db and filter_key:
+                    known_craft = (list(filter(
+                        lambda x: x[self.known_craft_key].strip().upper() == filter_key, self.known_craft_db)) or
+                                   [{}])[0]
+                    # self._logger.debug("known_craft='%s'", known_craft)
+                elif filter_key:
+                    if "include" in self.filters[self.filter_type] and filter_key not in self.filters.get(filter_type,
                                                                                                      "include"):
                         continue
-                    if "exclude" in self.filters[filter_type] and filter_key in self.filters.get(filter_type,
+                    if "exclude" in self.filters[self.filter_type] and filter_key in self.filters.get(filter_type,
                                                                                                  "exclude"):
                         continue
-                elif self.known_craft_db:
-                    for a_known_craft in self.known_craft_db:
-                        if filter_key and filter_key in a_known_craft[self.known_craft_key].strip().upper():
-                            known_craft = a_known_craft
+
 
             # If we're using a known_craft csv and this craft wasn't found, skip:
-            if self.known_craft_db and not known_craft:
+            if self.known_craft_db and not known_craft and not self.include_all_craft:
                 continue
 
             event = adsbxcot.adsbx_to_cot(
                 craft,
                 stale=self.cot_stale,
-                classifier=self.cot_classifier,
                 known_craft=known_craft
             )
 
@@ -165,6 +165,18 @@ class ADSBXWorker(pytak.MessageWorker):
             self.filters.add_section(self.known_craft_key)
             self.filters[self.known_craft_key]["include"] = \
                 str([x[self.known_craft_key].strip().upper() for x in self.known_craft_db])
+
+        if self.filters or self.known_craft_db:
+            filter_src = self.filters or self.known_craft_key
+            self._logger.debug("filter_src=%s", filter_src)
+            if filter_src:
+                if "HEX" in filter_src:
+                    self.filter_type = "HEX"
+                elif "FLIGHT" in filter_src:
+                    self.filter_type = "FLIGHT"
+                elif "REG" in filter_src:
+                    self.filter_type = "REG"
+                self._logger.debug("filter_type=%s", self.filter_type)
 
         while 1:
             await self._get_adsbx_feed()
