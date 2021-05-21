@@ -14,6 +14,18 @@ Situational Awareness (SA) applications such as the Android Team Awareness Kit
 
 For more information on the TAK suite of tools, see: https://www.civtak.org/
 
+Support ADSBXCoT Development
+============================
+
+ADSBXCoT has been developed for the Disaster Response, Public Safety and Frontline community at-large. This software
+is currently provided at no-cost to our end-users. All development is self-funded and all time-spent is entirely
+voluntary. Any contribution you can make to further these software development efforts, and the mission of ADSBXCoT
+to provide ongoing SA capabilities to our end-users, is greatly appreciated:
+
+.. image:: https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png
+    :target: https://www.buymeacoffee.com/ampledata
+    :alt: Support ADSBXCoT development: Buy me a coffee!
+
 Installation
 ============
 
