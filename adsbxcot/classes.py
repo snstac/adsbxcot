@@ -20,6 +20,8 @@ import urllib
 import pytak
 import requests
 
+import aircot
+
 import adsbxcot
 
 
@@ -160,7 +162,7 @@ class ADSBXWorker(pytak.MessageWorker):
 
         if self.known_craft is not None:
             self._logger.info("Using KNOWN_CRAFT File: '%s'", self.known_craft)
-            self.known_craft_db = adsbxcot.read_known_craft(self.known_craft)
+            self.known_craft_db = aircot.read_known_craft(self.known_craft)
             self.filters = configparser.ConfigParser()
             self.filters.add_section(self.known_craft_key)
             self.filters[self.known_craft_key]["include"] = \
