@@ -30,8 +30,17 @@ Installation
 ============
 
 The ADS-B Exchange to Cursor on Target Gateway is provided by a command-line tool called
-`adsbxcot`, which can be installed either from the Python Package Index, or
-directly from this source tree.
+`adsbxcot`:
+
+Installing as a Debian/Ubuntu Package::
+
+    $ wget https://github.com/ampledata/aircot/releases/latest/download/python3-aircot_latest_all.deb
+    $ sudo apt install -f ./python3-aircot_latest_all.deb
+    $ wget https://github.com/ampledata/pytak/releases/latest/download/python3-pytak_latest_all.deb
+    $ sudo apt install -f ./python3-pytak_latest_all.deb
+    $ wget https://github.com/ampledata/adsbxcot/releases/latest/download/python3-adsbxcot_latest_all.deb
+    $ sudo apt install -f ./python3-adsbxcot_latest_all.deb
+
 
 Install from the Python Package Index (PyPI)::
 
@@ -73,14 +82,6 @@ Troubleshooting
 ===============
 
 To report bugs, please set the DEBUG=1 environment variable to collect logs.
-
-Unit Test/Build Status
-======================
-
-adsbxcot's current unit test and build status is available via Travis CI:
-
-.. image:: https://travis-ci.com/ampledata/adsbxcot.svg?branch=master
-    :target: https://travis-ci.com/ampledata/adsbxcot
 
 Source
 ======
