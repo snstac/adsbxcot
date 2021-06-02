@@ -61,6 +61,12 @@ def adsbx_to_cot_raw(craft: dict, stale: int = None, known_craft: dict = {}) -> 
     detail.append(contact)
     detail.append(track)
 
+    icon = known_craft.get("ICON")
+    if icon:
+        usericon = xml.etree.ElementTree.Element("usericon")
+        usericon.set("iconsetpath", icon)
+        detail.append(usericon)
+
     remarks = xml.etree.ElementTree.Element("remarks")
 
     _remarks = (
