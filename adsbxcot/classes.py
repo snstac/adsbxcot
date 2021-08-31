@@ -121,9 +121,9 @@ class ADSBXWorker(pytak.MessageWorker):
 
             # Filter by altitude:
             hae: float = float(event.find("point").get("hae"))
-            if self.filter_altitude_high and hae > float(self.filter_raltitude_high):
+            if self.filter_altitude_high and hae > float(self.filter_altitude_high):
                 continue
-            if self.filter_altitude_low and hae < float(self.filter_raltitude_high):
+            if self.filter_altitude_low and hae < float(self.filter_altitude_low):
                 continue
 
             # Filter by flight prefix:
