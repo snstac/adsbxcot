@@ -19,7 +19,7 @@ __copyright__ = "Copyright 2021 Orion Labs, Inc."
 __license__ = "Apache License, Version 2.0"
 
 
-def adsbx_to_cot_raw(craft: dict, stale: int = None, known_craft: dict = {}) -> str:
+def _adsbx_to_cot_xml(craft: dict, stale: int = None, known_craft: dict = {}) -> xml.etree.ElementTree:
     """
     Transforms an ADS-B Exchange Aircraft Object to a Cursor-on-Target PLI.
     """
@@ -91,10 +91,36 @@ def adsbx_to_cot_raw(craft: dict, stale: int = None, known_craft: dict = {}) -> 
     return root
 
 
-def adsbx_to_cot(craft: dict, stale: int = None, known_craft: dict = {}) -> str:
-    lat = craft.get("lat")
-    lon = craft.get("lon")
-    if lat is None or lon is None:
-        return None
+def adsbx_to_cot_xml_safe(craft: dict, stale: int = None, known_craft: dict = {}) -> xml.etree.ElementTree:
+    """
+    Renders an ADSBExchange.com ADS-B 'Object' as Cursor on Target in a 'safe'
+    way by checking that lat & lon exist.
 
-    return xml.etree.ElementTree.tostring(adsbx_to_cot_raw(craft, stale, known_craft))
+    :param craft: ADSBExchange.com ADS-B 'Object'.
+    :param stale: Period in seconds before CoT Event is 'stale'.
+    :param known_craft: ADS-B to CoT hints.
+
+    :return: CoT Event as a Python XML Object.
+    """
+    lat: str = craft.get("lat")
+    lon: str = craft.get("lon")
+    if lat is None or lon is None:
+        return
+    return _adsbx_to_cot_xml(craft, stale, known_craft)
+
+
+def adsbx_to_cot(craft: dict, stale: int = None, known_craft: dict = {}) -> str:
+    """
+    Renders an ADSBExchange.com ADS-B 'Object' as a string-formatted XML
+    Cursor on Target Event.
+
+    :param craft: ADSBExchange.com ADS-B 'Object'.
+    :param stale: Period in seconds before CoT Event is 'stale'.
+    :param known_craft: ADS-B to CoT hints.
+
+    :return: CoT Event as string-formatted XML.
+    """
+    cot: xml.etree.ElementTree = adsbx_to_cot_xml_safe(
+        craft, stale, known_craft)
+    if cot is not None:
+        return xml.etree.ElementTree.tostring(cot)
