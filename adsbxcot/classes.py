@@ -55,16 +55,16 @@ class ADSBXWorker(pytak.MessageWorker):
 
     async def handle_message(self, aircraft: list) -> None:
         """
-        Transforms Aircraft ADS-B data to CoT and puts it onto tx queue.
+        Transforms Aircraft ADS-B data to CoT and puts it onto a Transmit queue.
         """
         if not isinstance(aircraft, list):
             self._logger.warning(
                 "Invalid aircraft data, should be a Python list.")
-            return False
+            return None
 
         if not aircraft:
             self._logger.warning("Empty aircraft list")
-            return False
+            return None
 
         _lac = len(aircraft)
         _acn = 1
@@ -98,11 +98,9 @@ class ADSBXWorker(pytak.MessageWorker):
                                    [{}])[0]
                     # self._logger.debug("known_craft='%s'", known_craft)
                 elif filter_key:
-                    if "include" in self.filters[self.filter_type] and filter_key not in self.filters.get(filter_type,
-                                                                                                     "include"):
+                    if "include" in self.filters[self.filter_type] and filter_key not in self.filters.get(filter_type, "include"):
                         continue
-                    if "exclude" in self.filters[self.filter_type] and filter_key in self.filters.get(filter_type,
-                                                                                                 "exclude"):
+                    if "exclude" in self.filters[self.filter_type] and filter_key in self.filters.get(filter_type, "exclude"):
                         continue
 
 
@@ -110,7 +108,7 @@ class ADSBXWorker(pytak.MessageWorker):
             if self.known_craft_db and not known_craft and not self.include_all_craft:
                 continue
 
-            event = adsbxcot.adsbx_to_cot(
+            event: str = adsbxcot.adsbx_to_cot(
                 craft,
                 stale=self.cot_stale,
                 known_craft=known_craft
@@ -122,9 +120,10 @@ class ADSBXWorker(pytak.MessageWorker):
                 continue
 
             self._logger.debug(
-                "Handling %s/%s ICAO: %s Flight: %s Category: %s",
+                "Handling %s/%s Type: %s ICAO: %s Flight: %s Cat: %s",
                 _acn,
                 _lac,
+                craft.get("type"),
                 craft.get("hex"),
                 craft.get("flight"),
                 craft.get("category")
@@ -143,10 +142,12 @@ class ADSBXWorker(pytak.MessageWorker):
         else:
             headers = {"api-auth": self.api_key}
 
+        feed_url: str = self.url.geturl()
+        self._logger.debug("Getting feed from %s", feed_url)
         async with aiohttp.ClientSession() as session:
             response = await session.request(
                 method="GET",
-                url=self.url.geturl(),
+                url=feed_url,
                 headers=headers
             )
             response.raise_for_status()

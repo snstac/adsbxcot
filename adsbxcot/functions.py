@@ -70,12 +70,12 @@ def adsbx_to_cot_raw(craft: dict, stale: int = None, known_craft: dict = {}) -> 
     remarks = xml.etree.ElementTree.Element("remarks")
 
     _remarks = (
-        f"{callsign} ICAO: {icao_hex} REG: {reg} Flight: {flight} Type: {craft_type} Squawk: {craft.get('squawk')} "
-        f"Category: {craft.get('category')} (via adsbxcot@{platform.node()})")
+        f"{callsign}({craft_type}) Squawk: {craft.get('squawk')} Reg: {reg} "
+        f"Flight: {flight} (via adsbxcot@{platform.node()})")
 
     detail.set("remarks", _remarks)
     remarks.text = _remarks
-    detail.append(remarks)
+    # detail.append(remarks)
 
     root = xml.etree.ElementTree.Element("event")
     root.set("version", "2.0")

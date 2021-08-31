@@ -32,7 +32,8 @@ __license__ = "Apache License, Version 2.0"
 async def main(opts):
     tx_queue: asyncio.Queue = asyncio.Queue()
     rx_queue: asyncio.Queue = asyncio.Queue()
-    cot_url: urllib.parse.ParseResult = urllib.parse.urlparse(opts.get("COT_URL"))
+    cot_url: urllib.parse.ParseResult = urllib.parse.urlparse(
+        opts.get("COT_URL"))
 
     # Create our CoT Event Queue Worker
     reader, writer = await pytak.protocol_factory(cot_url)
@@ -43,7 +44,7 @@ async def main(opts):
 
     await tx_queue.put(pytak.hello_event("adsbxcot"))
 
-    done, pending = await asyncio.wait(
+    done, _ = await asyncio.wait(
         set([message_worker.run(), read_worker.run(), write_worker.run()]),
         return_when=asyncio.FIRST_COMPLETED)
 
@@ -56,14 +57,17 @@ def cli():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-c", "--CONFIG_FILE", dest="CONFIG_FILE", default="config.ini", type=str)
+    parser.add_argument("-c", "--CONFIG_FILE", dest="CONFIG_FILE",
+                        default="config.ini", type=str)
     parser.add_argument(
-        "-d", "--DEBUG", dest="DEBUG", default=False, action="store_true", help="Enable DEBUG logging")
+        "-d", "--DEBUG", dest="DEBUG", default=False, action="store_true",
+        help="Enable DEBUG logging")
     parser.add_argument(
         '-U',
         '--COT_URL',
         dest="COT_URL",
-        help='URL to CoT Destination. Must be a URL, e.g. tcp:1.2.3.4:1234 or tls:...:1234, etc.'
+        help='URL to CoT Destination. Must be a URL, e.g. tcp:1.2.3.4:1234 '
+             'or tls:...:1234, etc.'
     )
     parser.add_argument(
         '-S',
@@ -116,15 +120,18 @@ def cli():
         logging.info("Reading FILTER_CONFIG from %s", filter_config)
         filters = configparser.ConfigParser()
         filters.read(filter_config)
-        combined_config = collections.ChainMap(combined_config, {"FILTERS": filters})
+        combined_config = collections.ChainMap(
+            combined_config, {"FILTERS": filters})
 
     if not combined_config.get("COT_URL"):
-        print("Please specify a CoT Destination URL, for example: '-U tcp:takserver.example.com:8087'")
+        print("Please specify a CoT Destination URL, for example: "
+              "'-U tcp:takserver.example.com:8087'")
         print("See -h for help.")
         sys.exit(1)
 
     if not combined_config.get("ADSBX_URL"):
-        print("Please specify a ADSB Exchange Source URL, for example: '-A https://adsbx.com/...'")
+        print("Please specify a ADSB Exchange Source URL, for example: "
+              "'-A https://adsbx.com/...'")
         print("See -h for help.")
         sys.exit(1)
 
