@@ -8,19 +8,12 @@ import concurrent
 import aiohttp
 import asyncio
 import configparser
-import json
-import logging
-import os
-import queue
-import random
-import threading
-import time
 import urllib
 
-import pytak
-import requests
+import xml.etree.ElementTree
 
 import aircot
+import pytak
 
 import adsbxcot
 
@@ -34,20 +27,27 @@ class ADSBXWorker(pytak.MessageWorker):
 
     """Reads ADS-B Exchange Data, renders to CoT, and puts on queue."""
 
-    def __init__(self, event_queue: asyncio.Queue, opts):
+    def __init__(self, event_queue: asyncio.Queue, config):
         super().__init__(event_queue)
 
-        self.url: urllib.parse.ParseResult = urllib.parse.urlparse(opts.get("ADSBX_URL"))
-        self.cot_stale = opts.get("COT_STALE")
-        self.poll_interval: int = int(opts.get("POLL_INTERVAL") or adsbxcot.DEFAULT_POLL_INTERVAL)
-        self.api_key: str = opts.get("API_KEY")
+        _conf = config["adsbxcot"]
+        self.url: urllib.parse.ParseResult = urllib.parse.urlparse(
+            _conf.get("ADSBX_URL"))
+        self.cot_stale = _conf.get("COT_STALE")
+        self.poll_interval: int = int(_conf.get("POLL_INTERVAL") or
+                                      adsbxcot.DEFAULT_POLL_INTERVAL)
+        self.api_key: str = _conf.get("API_KEY")
 
-        self.include_tisb = bool(opts.get("INCLUDE_TISB")) or False
-        self.include_all_craft = bool(opts.get("INCLUDE_ALL_CRAFT")) or False
+        self.include_tisb = bool(_conf.get("INCLUDE_TISB")) or False
+        self.include_all_craft = bool(_conf.get("INCLUDE_ALL_CRAFT")) or False
 
-        self.filters = opts.get("FILTERS")
-        self.known_craft = opts.get("KNOWN_CRAFT")
-        self.known_craft_key = opts.get("KNOWN_CRAFT_KEY") or "HEX"
+        self.filters = _conf.get("FILTERS")
+        self.known_craft = _conf.get("KNOWN_CRAFT")
+        self.known_craft_key = _conf.get("KNOWN_CRAFT_KEY") or "HEX"
+
+        self.filter_altitude_high = _conf.get("FILTER_ALTITUDE_HIGH")
+        self.filter_altitude_low = _conf.get("FILTER_ALTITUDE_LOW")
+        self.filter_flight_prefix = _conf.get("FILTER_FLIGHT_PREFIX")
 
         self.filter_type = ""
         self.known_craft_db = None
@@ -108,7 +108,7 @@ class ADSBXWorker(pytak.MessageWorker):
             if self.known_craft_db and not known_craft and not self.include_all_craft:
                 continue
 
-            event: str = adsbxcot.adsbx_to_cot(
+            event: xml.etree.ElementTree = adsbxcot.adsbx_to_cot_xml_safe(
                 craft,
                 stale=self.cot_stale,
                 known_craft=known_craft
@@ -119,16 +119,35 @@ class ADSBXWorker(pytak.MessageWorker):
                 _acn += 1
                 continue
 
+            # Filter by altitude:
+            hae: float = float(event.find("point").get("hae"))
+            if self.filter_altitude_high and hae > float(self.filter_raltitude_high):
+                continue
+            if self.filter_altitude_low and hae < float(self.filter_raltitude_high):
+                continue
+
+            # Filter by flight prefix:
+            flight: str = craft.get("flight")
+            if self.filter_flight_prefix:
+                if flight:
+                    if not flight.startswith(self.filter_flight_prefix):
+                        continue
+                else:
+                    continue
+
             self._logger.debug(
-                "Handling %s/%s Type: %s ICAO: %s Flight: %s Cat: %s",
+                "Enqueuing %s/%s Type: %s ICAO HEX: %s Flight: %s "
+                "Category: %s",
                 _acn,
                 _lac,
                 craft.get("type"),
                 craft.get("hex"),
-                craft.get("flight"),
+                flight,
                 craft.get("category")
             )
-            await self._put_event_queue(event)
+
+            event_str: str = xml.etree.ElementTree.tostring(event)
+            await self._put_event_queue(event_str)
             _acn += 1
 
     async def _get_adsbx_feed(self):
