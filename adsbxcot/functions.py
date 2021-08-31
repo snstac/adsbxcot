@@ -70,8 +70,8 @@ def adsbx_to_cot_raw(craft: dict, stale: int = None, known_craft: dict = {}) -> 
     remarks = xml.etree.ElementTree.Element("remarks")
 
     _remarks = (
-        f"{callsign}({craft_type}) Squawk: {craft.get('squawk')} Reg: {reg} "
-        f"Flight: {flight} (via adsbxcot@{platform.node()})")
+        f"Flight: {flight}/{reg}({craft_type}) Squawk: {craft.get('squawk')}"
+        f" (via adsbxcot@{platform.node()})")
 
     detail.set("remarks", _remarks)
     remarks.text = _remarks
