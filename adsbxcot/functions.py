@@ -33,7 +33,7 @@ def _adsbx_to_cot_xml(craft: dict, stale: int = None, known_craft: dict = {}) ->
 
     name, callsign = aircot.set_name_callsign(icao_hex, reg, craft_type, flight, known_craft)
     category = aircot.set_category(craft.get("category"), known_craft)
-    cot_type = aircot.set_cot_type(icao_hex, category, flight, known_craft)
+    cot_type = os.getenv("OVERRIDE_COT_TYPE") or aircot.set_cot_type(icao_hex, category, flight, known_craft)
 
     point = xml.etree.ElementTree.Element("point")
     point.set("lat", str(craft.get("lat")))
