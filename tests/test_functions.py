@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Python Team Awareness Kit (PyTAK) Module Tests."""
+"""ADSBXCOT Module Tests."""
 
 import asyncio
 import csv
@@ -13,9 +13,9 @@ import pytest
 
 import adsbxcot.functions
 
-__author__ = 'Greg Albrecht W2GMD <oss@undef.net>'
-__copyright__ = 'Copyright 2021 Orion Labs, Inc.'
-__license__ = 'Apache License, Version 2.0'
+__author__ = "Greg Albrecht W2GMD <oss@undef.net>"
+__copyright__ = "Copyright 2022 Greg Albrecht"
+__license__ = "Apache License, Version 2.0"
 
 
 @pytest.fixture
@@ -138,12 +138,13 @@ FOOD,PANCHO VIA,N708SD,TACO_03,HELICOPTER,,,a-f-A-T-A-C-O,HELICOPTER,,
 
 
 def test_adsbx_to_cot_raw(sample_feed):
+    """Tests that ADS-B to COT translation returns expected XML Document."""
     sample_craft = sample_feed["aircraft"][0]
     cot = adsbxcot.functions.adsbx_to_cot_raw(sample_craft)
     assert isinstance(cot, xml.etree.ElementTree.Element)
     assert cot.tag == "event"
     assert cot.attrib["version"] == "2.0"
-    assert cot.attrib["type"] == "a-.-A-C-F"
+    assert cot.attrib["type"] == "a-n-A-C-F"
     assert cot.attrib["uid"] == "ICAO-A9EE47"
 
     point = cot.findall("point")
@@ -162,6 +163,7 @@ def test_adsbx_to_cot_raw(sample_feed):
 
 
 def test_adsbx_to_cot(sample_feed):
+    """Tests that ADS-B to COT translation returns expected XML as a sring."""
     sample_craft = sample_feed["aircraft"][0]
     cot = adsbxcot.adsbx_to_cot(sample_craft)
     expected = (b'<event version="2.0" type="a-.-A-C-F" uid="ICAO-A9EE47" how="m-g" '
@@ -173,7 +175,7 @@ def test_adsbx_to_cot(sample_feed):
                 b'A9EE47 REG:  Flight: N739UL Type:  Squawk: None Category: A1 (via adsbxcot@rorqual)</remarks>'
                 b'</detail></event>')
     assert isinstance(cot, bytes)
-    assert b"a-.-A-C-F" in cot
+    assert b"a-n-A-C-F" in cot
     assert b"N739UL" in cot
     assert b"ICAO-A9EE47" in cot
     assert b'speed="40.898298000000004"' in cot
@@ -214,4 +216,4 @@ def test_adsbx_to_cot_raw_with_known_craft(sample_feed, sample_known_craft):
 def test_negative_adsbx_to_cot():
     sample_craft = {"taco": "burrito"}
     cot = adsbxcot.adsbx_to_cot(sample_craft)
-    assert cot == None
+    assert cot == ''
