@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""ADS-B Exchange Cursor-on-Target Constants."""
+"""ADSBXCOT Constants."""
 
 import logging
 import os
 
 __author__ = "Greg Albrecht W2GMD <oss@undef.net>"
-__copyright__ = "Copyright 2021 Orion Labs, Inc."
+__copyright__ = "Copyright 2022 Greg Albrecht"
 __license__ = "Apache License, Version 2.0"
 
 
