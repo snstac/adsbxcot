@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""ADS-B Exchange Cursor-on-Target Gateway Functions."""
+"""ADSBXCOT Functions."""
 
-import csv
 import datetime
-import os
 import platform
 import xml.etree.ElementTree
 
@@ -15,11 +13,12 @@ import aircot
 import adsbxcot.constants
 
 __author__ = "Greg Albrecht W2GMD <oss@undef.net>"
-__copyright__ = "Copyright 2021 Orion Labs, Inc."
+__copyright__ = "Copyright 2022 Greg Albrecht"
 __license__ = "Apache License, Version 2.0"
 
 
-def adsbx_to_cot_raw(craft: dict, stale: int = None, known_craft: dict = {}) -> str:
+def adsbx_to_cot_raw(craft: dict, stale: int = None,
+                     known_craft: dict = {}) -> xml.etree.ElementTree.Element:
     """
     Transforms an ADS-B Exchange Aircraft Object to a Cursor-on-Target PLI.
     """
@@ -31,7 +30,8 @@ def adsbx_to_cot_raw(craft: dict, stale: int = None, known_craft: dict = {}) -> 
     craft_type: str = craft.get("t", "").strip().upper()
     reg: str = craft.get("r", "").strip().upper()
 
-    name, callsign = aircot.set_name_callsign(icao_hex, reg, craft_type, flight, known_craft)
+    name, callsign = aircot.set_name_callsign(
+        icao_hex, reg, craft_type, flight, known_craft)
     category = aircot.set_category(craft.get("category"), known_craft)
     cot_type = aircot.set_cot_type(icao_hex, category, flight, known_craft)
 
@@ -70,7 +70,8 @@ def adsbx_to_cot_raw(craft: dict, stale: int = None, known_craft: dict = {}) -> 
     remarks = xml.etree.ElementTree.Element("remarks")
 
     _remarks = (
-        f"{callsign} ICAO: {icao_hex} REG: {reg} Flight: {flight} Type: {craft_type} Squawk: {craft.get('squawk')} "
+        f"{callsign} ICAO: {icao_hex} REG: {reg} Flight: {flight} "
+        f"Type: {craft_type} Squawk: {craft.get('squawk')} "
         f"Category: {craft.get('category')} (via adsbxcot@{platform.node()})")
 
     detail.set("remarks", _remarks)
@@ -84,17 +85,20 @@ def adsbx_to_cot_raw(craft: dict, stale: int = None, known_craft: dict = {}) -> 
     root.set("how", "m-g")
     root.set("time", time.strftime(pytak.ISO_8601_UTC))
     root.set("start", time.strftime(pytak.ISO_8601_UTC))
-    root.set("stale", (time + datetime.timedelta(seconds=int(cot_stale))).strftime(pytak.ISO_8601_UTC))
+    root.set("stale", (time + datetime.timedelta(
+        seconds=int(cot_stale))).strftime(pytak.ISO_8601_UTC))
     root.append(point)
     root.append(detail)
 
     return root
 
 
-def adsbx_to_cot(craft: dict, stale: int = None, known_craft: dict = {}) -> str:
+def adsbx_to_cot(craft: dict, stale: int = None,
+                 known_craft: dict = {}) -> bytes:
     lat = craft.get("lat")
     lon = craft.get("lon")
     if lat is None or lon is None:
-        return None
+        return ''
 
-    return xml.etree.ElementTree.tostring(adsbx_to_cot_raw(craft, stale, known_craft))
+    return xml.etree.ElementTree.tostring(
+        adsbx_to_cot_raw(craft, stale, known_craft))
