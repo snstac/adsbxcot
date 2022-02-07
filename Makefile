@@ -1,8 +1,8 @@
-# Makefile for Python ADSB Cursor-on-Target Gateway.
+# ADSBXCOT Makefile
 #
 # Source:: https://github.com/ampledata/adsbxcot
 # Author:: Greg Albrecht W2GMD <oss@undef.net>
-# Copyright:: Copyright 2020 Orion Labs, Inc.
+# Copyright:: Copyright 2022 Greg Albrecht
 # License:: Apache License, Version 2.0
 #
 
