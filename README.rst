@@ -1,4 +1,4 @@
-adsbxcot - ADS-B Exchange Cursor-on-Target Gateway.
+ADSBExchange.com ADS-B to Cursor-On-Target Gateway.
 ***************************************************
 
 .. image:: https://raw.githubusercontent.com/ampledata/adsbxcot/main/docs/screenshot-1604561447-25.png
@@ -6,34 +6,35 @@ adsbxcot - ADS-B Exchange Cursor-on-Target Gateway.
    :target: https://github.com/ampledata/adsbxcot/blob/main/docs/screenshot-1604561447.png
 
 
-The adsbxcot ADS-B Exchange Cursor on Target Gateway transforms Automatic
+The ADSBXCOT ADS-B to Cursor-On-Target Gateway transforms Automatic
 Dependent Surveillance-Broadcast (ADS-B) aircraft position information into
-Cursor on Target (CoT) Position Location Information (PLI) for display on
+Cursor-On-Target (COT) Position Location Information (PLI) for display on
 Situational Awareness (SA) applications such as the Android Team Awareness Kit
-(ATAK), WinTAK, RaptorX, et al.
+(ATAK), WinTAK, RaptorX, TAKX, iTAK, et al. ADS-B data is provided by
+ADSBExchange.com and requires an `API key <https://www.adsbexchange.com/data/>`_ from that service.
 
-For more information on the TAK suite of tools, see: https://www.civtak.org/
+For more information on the TAK suite of tools, see: https://www.tak.gov/
 
-Support ADSBXCoT Development
+Support ADSBXCOT Development
 ============================
 
-ADSBXCoT has been developed for the Disaster Response, Public Safety and Frontline community at-large. This software
-is currently provided at no-cost to our end-users. All development is self-funded and all time-spent is entirely
-voluntary. Any contribution you can make to further these software development efforts, and the mission of ADSBXCoT
-to provide ongoing SA capabilities to our end-users, is greatly appreciated:
+ADSBXCOT has been developed for the Disaster Response, Public Safety and
+Frontline Healthcare community. This software is currently provided at no-cost
+to users. Any contribution you can make to further this project's development
+efforts is greatly appreciated.
 
 .. image:: https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png
     :target: https://www.buymeacoffee.com/ampledata
-    :alt: Support ADSBXCoT development: Buy me a coffee!
+    :alt: Support ADSBXCOT development: Buy me a coffee!
 
 Installation
 ============
 
-The ADS-B Exchange to Cursor on Target Gateway is provided by a command-line tool called
-`adsbxcot`:
+ADSBXCOT's functionality provided by a command-line program called `adsbxcot`.
 
-Installing as a Debian/Ubuntu Package::
+Installing as a Debian / Ubuntu Package [Recommended]::
 
+    $ sudo apt update
     $ wget https://github.com/ampledata/aircot/releases/latest/download/python3-aircot_latest_all.deb
     $ sudo apt install -f ./python3-aircot_latest_all.deb
     $ wget https://github.com/ampledata/pytak/releases/latest/download/python3-pytak_latest_all.deb
@@ -42,12 +43,12 @@ Installing as a Debian/Ubuntu Package::
     $ sudo apt install -f ./python3-adsbxcot_latest_all.deb
 
 
-Install from the Python Package Index (PyPI)::
+Install from the Python Package Index (PyPI) [Advanced Users]::
 
     $ pip install adsbxcot
 
 
-Install from this source tree::
+Install from this source tree [Developers]::
 
     $ git clone https://github.com/ampledata/adsbxcot.git
     $ cd adsbxcot/
@@ -85,44 +86,30 @@ To report bugs, please set the DEBUG=1 environment variable to collect logs.
 
 Source
 ======
-The source for adsbxcot can be found on Github: https://github.com/ampledata/adsbxcot
+ADSBXCOT source can be found on Github: https://github.com/ampledata/adsbxcot
 
 Author
 ======
-adsbxcot is written and maintained by Greg Albrecht W2GMD oss@undef.net
+ADSBXCOT is written and maintained by Greg Albrecht W2GMD oss@undef.net
 
 https://ampledata.org/
 
 Copyright
 =========
-adsbxcot is Copyright 2020 Orion Labs, Inc. https://www.orionlabs.io
+ADSBXCOT is Copyright 2022 Greg Albrecht
 
 License
 =======
-adsbxcot is licensed under the Apache License, Version 2.0. See LICENSE for details.
-
-Running as a Daemon
-===================
-First, install supervisor::
-
-    $ sudo yum install supervisor
-    $ sudo service supervisord start
-
-Create /etc/supervisor.d/adsbxcot.ini with the following content::
-
-    [program:adsbxcot]
-    command=adsbxcot -U https://adsbexchange.com/api/aircraft/v2/lat/36.7783/lon/-119.4179/dist/400/ -X xxx -I 5 -C 127.0.0.1 -P 8087
-
-And update supervisor::
-
-    $ sudo supervisorctl update
-
+ADSBXCOT is licensed under the Apache License, Version 2.0. See LICENSE for
+details.
 
 Filtering
 =========
 
-New in the latest version of adsbxcot is the concept of filtering. Filters can be specified in a configuration file
-or with a csv 'known craft' file.
+Filters and transforms can be specified in two ways:
+
+1. Known Craft CSV file [Preferred].
+2. Configuration file [Basic].
 
 Using the filter configuration file:
 
