@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
-Setup for the ADS-B Exchange Cursor-on-Target Gateway.
-
+"""ADSBXCOT Setup.
 Source:: https://github.com/ampledata/adsbxcot
 """
 
@@ -13,9 +11,9 @@ import sys
 import setuptools
 
 __title__ = "adsbxcot"
-__version__ = "1.5.0"
+__version__ = "1.6.0b1"
 __author__ = "Greg Albrecht W2GMD <oss@undef.net>"
-__copyright__ = "Copyright 2021 Orion Labs, Inc."
+__copyright__ = "Copyright 2022 Greg Albrecht"
 __license__ = "Apache License, Version 2.0"
 
 
@@ -36,7 +34,7 @@ setuptools.setup(
     packages=[__title__],
     package_dir={__title__: __title__},
     url=f'https://github.com/ampledata/{__title__}',
-    description='ADS-B Exchange Cursor-on-Target Gateway.',
+    description='ADSBExchange.com ADS-B to Cursor-On-Target Gateway.',
     author='Greg Albrecht',
     author_email='oss@undef.net',
     package_data={'': ['LICENSE']},
