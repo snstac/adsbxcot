@@ -88,11 +88,11 @@ class ADSBXWorker(pytak.MessageWorker):
                     # self._logger.debug("known_craft='%s'", known_craft)
                 elif filter_key:
                     if "include" in self.filters[self.filter_type] and \
-                            filter_key not in self.filters.get(filter_type,
+                            filter_key not in self.filters.get(self.filter_type,
                                                                "include"):
                         continue
                     if "exclude" in self.filters[self.filter_type] and \
-                            filter_key in self.filters.get(filter_type,
+                            filter_key in self.filters.get(self.filter_type,
                                                            "exclude"):
                         continue
 
