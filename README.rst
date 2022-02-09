@@ -1,9 +1,9 @@
 ADSBExchange.com ADS-B to Cursor-On-Target Gateway.
 ***************************************************
 
-.. image:: https://raw.githubusercontent.com/ampledata/adsbxcot/main/docs/screenshot-1604561447-25.png
+.. image:: https://raw.githubusercontent.com/ampledata/adsbxcot/main/docs/Screenshot_20201026-142037_ATAK-25p.jpg
    :alt: Screenshot of ADS-B PLI in ATAK.
-   :target: https://github.com/ampledata/adsbxcot/blob/main/docs/screenshot-1604561447.png
+   :target: https://github.com/ampledata/adsbxcot/blob/main/docs/Screenshot_20201026-142037_ATAK.jpg
 
 
 The ADSBXCOT ADS-B to Cursor-On-Target Gateway transforms Automatic
