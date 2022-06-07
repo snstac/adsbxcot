@@ -3,16 +3,15 @@
 
 """ADSBXCOT Class Definitions."""
 
-import aiohttp
 import asyncio
 import configparser
 
-import urllib
+from typing import Union
+
+import aiohttp
 
 import pytak
-
 import aircot
-
 import adsbxcot
 
 
@@ -25,24 +24,13 @@ class ADSBXWorker(pytak.MessageWorker):
 
     """Reads ADSBExchange.com ADS-B Data, renders to COT, and puts on Queue."""
 
-    def __init__(self, event_queue: asyncio.Queue, opts):
-        super().__init__(event_queue)
+    def __init__(
+        self, event_queue: asyncio.Queue, config: Union[dict, configparser.ConfigParser]
+    ):
+        super().__init__(event_queue, config)
+        _ = [x.setFormatter(adsbxcot.LOG_FORMAT) for x in self._logger.handlers]
 
-        self.url: urllib.parse.ParseResult = urllib.parse.urlparse(
-            opts.get("ADSBX_URL"))
-        self.cot_stale = opts.get("COT_STALE")
-        self.poll_interval: int = int(opts.get("POLL_INTERVAL") or
-                                      adsbxcot.DEFAULT_POLL_INTERVAL)
-        self.api_key: str = opts.get("API_KEY")
-
-        self.include_tisb = bool(opts.get("INCLUDE_TISB")) or False
-        self.include_all_craft = bool(opts.get("INCLUDE_ALL_CRAFT")) or False
-
-        self.filters = opts.get("FILTERS")
-        self.known_craft = opts.get("KNOWN_CRAFT")
-        self.known_craft_key = opts.get("KNOWN_CRAFT_KEY") or "HEX"
-
-        self.filter_type = ""
+        self.known_craft = config.get("KNOWN_CRAFT")
         self.known_craft_db = None
 
     async def handle_message(self, aircraft: list) -> None:
@@ -50,99 +38,81 @@ class ADSBXWorker(pytak.MessageWorker):
         Transforms Aircraft ADS-B data to COT and puts it onto tx queue.
         """
         if not isinstance(aircraft, list):
-            self._logger.warning(
-                "Invalid aircraft data, should be a Python list.")
+            self._logger.warning("Invalid aircraft data, should be a Python list.")
             return None
 
         if not aircraft:
             self._logger.warning("Empty aircraft list")
             return None
 
+        icao = None
         _lac = len(aircraft)
         _acn = 1
         for craft in aircraft:
             icao = craft.get("hex", craft.get("icao")).strip().upper()
-            flight = craft.get("flight", "").strip().upper()
-            reg = craft.get("r", "").strip().upper()
 
-            if "~" in icao and not self.include_tisb:
+            if "~" in icao and not self.config.getboolean("INCLUDE_TISB"):
                 continue
 
             known_craft = {}
 
-            if self.filter_type:
-                if self.filter_type == "HEX":
-                    filter_key: str = icao
-                elif self.filter_type == "FLIGHT":
-                    filter_key: str = flight
-                elif self.filter_type == "REG":
-                    filter_key: str = reg
-                else:
-                    filter_key: str = ""
-
-                if self.known_craft_db and filter_key:
-                    known_craft = (list(filter(
-                        lambda x: x[self.known_craft_key].strip().upper() ==
-                                  filter_key, self.known_craft_db)) or
-                                   [{}])[0]
-                    # self._logger.debug("known_craft='%s'", known_craft)
-                elif filter_key:
-                    if "include" in self.filters[self.filter_type] and \
-                            filter_key not in self.filters.get(self.filter_type,
-                                                               "include"):
-                        continue
-                    if "exclude" in self.filters[self.filter_type] and \
-                            filter_key in self.filters.get(self.filter_type,
-                                                           "exclude"):
-                        continue
+            if self.known_craft_db:
+                known_craft = (
+                    list(
+                        filter(
+                            lambda x: x["HEX"].strip().upper() == icao,
+                            self.known_craft_db,
+                        )
+                    )
+                    or [{}]
+                )[0]
+                # self._logger.debug("known_craft='%s'", known_craft)
 
             # Skip if we're using known_craft CSV and this Craft isn't found:
-            if self.known_craft_db and not known_craft \
-                    and not self.include_all_craft:
+            if (
+                self.known_craft_db
+                and not known_craft
+                and not self.config.getboolean("INCLUDE_ALL_CRAFT")
+            ):
                 continue
 
             event = adsbxcot.adsbx_to_cot(
-                craft,
-                stale=self.cot_stale,
-                known_craft=known_craft
+                craft, config=self.config, known_craft=known_craft
             )
 
             if not event:
-                self._logger.debug(f"Empty CoT Event for craft={craft}")
+                self._logger.debug("Empty COT for craft=%s", craft)
                 _acn += 1
                 continue
 
             self._logger.debug(
-                "Handling %s/%s ICAO: %s Flight: %s Category: %s",
+                "Handling %s/%s %s %s",
                 _acn,
                 _lac,
                 craft.get("hex"),
                 craft.get("flight"),
-                craft.get("category")
             )
             await self._put_event_queue(event)
             _acn += 1
 
-    async def _get_adsbx_feed(self) -> None:
+    async def _get_adsbx_feed(self, url: str) -> None:
         """
         ADSBExchange.com ADS-B Feed API Client wrapper.
         Connects to ADSBX API and passes messages to `self.handle_message()`.
         """
+        api_key: str = self.config.get("API_KEY")
+
         # Support for either direct ADSBX API, or RapidAPI:
-        if "rapidapi" in self.url.geturl():
+        if "rapidapi" in url:
             headers = {
-                "x-rapidapi-key": self.api_key,
-                "x-rapidapi-host": "adsbexchange-com1.p.rapidapi.com"
+                "x-rapidapi-key": api_key,
+                "x-rapidapi-host": "adsbexchange-com1.p.rapidapi.com",
             }
         else:
-            headers = {"api-auth": self.api_key}
+            headers = {"api-auth": api_key}
 
         async with aiohttp.ClientSession() as session:
-            response = await session.request(
-                method="GET",
-                url=self.url.geturl(),
-                headers=headers
-            )
+            response = await session.request(method="GET", url=url, headers=headers)
             response.raise_for_status()
             json_resp = await response.json()
             aircraft = json_resp.get("ac")
@@ -155,32 +125,21 @@ class ADSBXWorker(pytak.MessageWorker):
 
             await self.handle_message(aircraft)
 
-    async def run(self) -> None:
+    async def run(self, number_of_iterations=-1) -> None:
         """Runs this Thread, Reads from Pollers."""
-        self._logger.info(
-            "Running ADSBXWorker with URL '%s'", self.url.geturl())
+        self._logger.info("Sending to: %s", self.config.get("COT_URL"))
 
-        if self.known_craft is not None:
-            self._logger.info("Using KNOWN_CRAFT File: '%s'", self.known_craft)
-            self.known_craft_db = aircot.read_known_craft(self.known_craft)
-            self.filters = configparser.ConfigParser()
-            self.filters.add_section(self.known_craft_key)
-            self.filters[self.known_craft_key]["include"] = \
-                str([x[self.known_craft_key].strip().upper() for x
-                     in self.known_craft_db])
+        url: str = self.config.get("ADSBX_URL")
+        poll_interval: str = self.config.get(
+            "POLL_INTERVAL", adsbxcot.DEFAULT_POLL_INTERVAL
+        )
 
-        if self.filters or self.known_craft_db:
-            filter_src = self.filters or self.known_craft_key
-            self._logger.debug("filter_src=%s", filter_src)
-            if filter_src:
-                if "HEX" in filter_src:
-                    self.filter_type = "HEX"
-                elif "FLIGHT" in filter_src:
-                    self.filter_type = "FLIGHT"
-                elif "REG" in filter_src:
-                    self.filter_type = "REG"
-                self._logger.debug("filter_type=%s", self.filter_type)
+        known_craft = self.config.get("KNOWN_CRAFT")
+        if known_craft:
+            self._logger.info("Using KNOWN_CRAFT: %s", known_craft)
+            self.known_craft_db = aircot.read_known_craft(known_craft)
 
         while 1:
-            await self._get_adsbx_feed()
-            await asyncio.sleep(self.poll_interval)
+            self._logger.info("Polling every %ss: %s", poll_interval, url)
+            await self._get_adsbx_feed(url)
+            await asyncio.sleep(int(poll_interval))

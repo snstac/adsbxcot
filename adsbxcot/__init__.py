@@ -15,10 +15,9 @@ ADS-B Exchange Cursor-on-Target Gateway.
 
 """
 
-from .constants import (LOG_FORMAT, LOG_LEVEL,  # NOQA
-                        DEFAULT_POLL_INTERVAL, DEFAULT_COT_STALE)
+from .constants import LOG_FORMAT, LOG_LEVEL, DEFAULT_POLL_INTERVAL  # NOQA
 
-from .functions import adsbx_to_cot  # NOQA
+from .functions import adsbx_to_cot, create_tasks  # NOQA
 
 from .classes import ADSBXWorker  # NOQA
 

@@ -18,7 +18,7 @@ install_requirements:
 develop:
 	python setup.py develop
 
-install_editable:
+editable:
 	pip install -e .
 
 install_test:
@@ -42,22 +42,26 @@ publish:
 	python setup.py publish
 
 pep8:
-	flake8 --max-complexity 12 --exit-zero adsbxco/*.py
+	flake8 --max-line-length=88 --extend-ignore=E203 --exit-zero adsbxcot/*.py
 
 flake8: pep8
 
 lint:
 	pylint --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" \
-		-r n adsbxco/*.py || exit 0
+		--max-line-length=88 -r n adsbxcot/*.py || exit 0
 
 pylint: lint
 
-# test: lint pep8 nosetests
+checkmetadata:
+	python setup.py check -s --restructuredtext
 
 mypy:
 	mypy --strict .
 
 pytest:
-	pytest --cov=adsbxcot
+	pytest
 
-test: install_editable install_test pytest
+test: editable install_test pytest
+
+test_cov:
+	pytest -cov=adsbxcot
