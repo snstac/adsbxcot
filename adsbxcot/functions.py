@@ -1,5 +1,20 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
+# Copyright 2022 Greg Albrecht <oss@undef.net>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author:: Greg Albrecht W2GMD <oss@undef.net>
+#
 
 """ADSBXCOT Functions."""
 
@@ -42,7 +57,20 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
     craft: dict, config: Union[dict, None] = None, known_craft: Union[dict, None] = None
 ) -> Union[ET.Element, None]:
     """
-    Transforms an ADS-B Exchange Aircraft Object to a Cursor-on-Target PLI.
+    Serializes a ADSBExchange.com aircraft objects as Cursor-On-Target XML.
+
+    Parameters
+    ----------
+    craft : `dict`
+        Key/Value data struct of decoded ADS-B aircraft data.
+    config : `configparser.ConfigParser`
+        Configuration options and values.
+        Uses config options: UID_KEY, COT_STALE, COT_HOST_ID
+
+    Returns
+    -------
+    `xml.etree.ElementTree.Element`
+        Cursor-On-Target XML ElementTree object.
     """
     known_craft: dict = known_craft or {}
     config: dict = config or {}
@@ -185,6 +213,6 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
 def adsbx_to_cot(
     craft: dict, config: Union[dict, None] = None, known_craft: Union[dict, None] = None
 ) -> Union[bytes, None]:
-    """Wrapper for `adsbx_to_cot_xml` that returns COT as an XML string."""
+    """Wrapper that returns COT as an XML string."""
     cot: Union[ET.Element, None] = adsbx_to_cot_xml(craft, config, known_craft)
     return ET.tostring(cot) if cot else None

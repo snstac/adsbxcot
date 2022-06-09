@@ -47,7 +47,6 @@ setuptools.setup(
     install_requires=[
         "pytak >= 5.0.0",
         "aircot",
-        "requests",
         "aiohttp",
     ],
     classifiers=[

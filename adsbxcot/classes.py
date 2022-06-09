@@ -1,12 +1,26 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
+# Copyright 2022 Greg Albrecht <oss@undef.net>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author:: Greg Albrecht W2GMD <oss@undef.net>
+#
 
 """ADSBXCOT Class Definitions."""
 
 import asyncio
-import configparser
 
-from typing import Union
+from configparser import ConfigParser
 
 import aiohttp
 
@@ -20,35 +34,33 @@ __copyright__ = "Copyright 2022 Greg Albrecht"
 __license__ = "Apache License, Version 2.0"
 
 
-class ADSBXWorker(pytak.MessageWorker):
+class ADSBXWorker(pytak.QueueWorker):
 
     """Reads ADSBExchange.com ADS-B Data, renders to COT, and puts on Queue."""
 
-    def __init__(
-        self, event_queue: asyncio.Queue, config: Union[dict, configparser.ConfigParser]
-    ):
-        super().__init__(event_queue, config)
+    def __init__(self, queue: asyncio.Queue, config: ConfigParser):
+        super().__init__(queue, config)
         _ = [x.setFormatter(adsbxcot.LOG_FORMAT) for x in self._logger.handlers]
 
         self.known_craft = config.get("KNOWN_CRAFT")
         self.known_craft_db = None
 
-    async def handle_message(self, aircraft: list) -> None:
+    async def handle_data(self, data: list) -> None:
         """
         Transforms Aircraft ADS-B data to COT and puts it onto tx queue.
         """
-        if not isinstance(aircraft, list):
+        if not isinstance(data, list):
             self._logger.warning("Invalid aircraft data, should be a Python list.")
             return None
 
-        if not aircraft:
+        if not data:
             self._logger.warning("Empty aircraft list")
             return None
 
         icao = None
-        _lac = len(aircraft)
+        _lac = len(data)
         _acn = 1
-        for craft in aircraft:
+        for craft in data:
             icao = craft.get("hex", craft.get("icao")).strip().upper()
 
             if "~" in icao and not self.config.getboolean("INCLUDE_TISB"):
@@ -92,10 +104,10 @@ class ADSBXWorker(pytak.MessageWorker):
                 craft.get("hex"),
                 craft.get("flight"),
             )
-            await self._put_event_queue(event)
+            await self.put_queue(event)
             _acn += 1
 
-    async def _get_adsbx_feed(self, url: str) -> None:
+    async def get_adsbx_feed(self, url: str) -> None:
         """
         ADSBExchange.com ADS-B Feed API Client wrapper.
         Connects to ADSBX API and passes messages to `self.handle_message()`.
@@ -115,20 +127,18 @@ class ADSBXWorker(pytak.MessageWorker):
             response = await session.request(method="GET", url=url, headers=headers)
             response.raise_for_status()
             json_resp = await response.json()
-            aircraft = json_resp.get("ac")
+            data = json_resp.get("ac")
 
-            if aircraft:
-                aircraft_len = len(aircraft)
+            if data:
+                aircraft_len = len(data)
             else:
                 aircraft_len = "No"
             self._logger.debug("Retrieved %s aircraft", aircraft_len)
 
-            await self.handle_message(aircraft)
+            await self.handle_data(data)
 
     async def run(self, number_of_iterations=-1) -> None:
         """Runs this Thread, Reads from Pollers."""
-        self._logger.info("Sending to: %s", self.config.get("COT_URL"))
-
         url: str = self.config.get("ADSBX_URL")
         poll_interval: str = self.config.get(
             "POLL_INTERVAL", adsbxcot.DEFAULT_POLL_INTERVAL
@@ -141,5 +151,5 @@ class ADSBXWorker(pytak.MessageWorker):
 
         while 1:
             self._logger.info("Polling every %ss: %s", poll_interval, url)
-            await self._get_adsbx_feed(url)
+            await self.get_adsbx_feed(url)
             await asyncio.sleep(int(poll_interval))
