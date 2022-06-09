@@ -139,6 +139,8 @@ class ADSBXWorker(pytak.QueueWorker):
 
     async def run(self, number_of_iterations=-1) -> None:
         """Runs this Thread, Reads from Pollers."""
+        self._logger.info("Running %s", self.__class__)
+
         url: str = self.config.get("ADSBX_URL")
         poll_interval: str = self.config.get(
             "POLL_INTERVAL", adsbxcot.DEFAULT_POLL_INTERVAL
