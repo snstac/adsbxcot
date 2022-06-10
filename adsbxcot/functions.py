@@ -34,7 +34,7 @@ __license__ = "Apache License, Version 2.0"
 
 def create_tasks(
     config: ConfigParser, clitool: pytak.CLITool
-) -> Set[pytak.Worker, ]:
+) -> Set[pytak.Worker,]:
     """
     Creates specific coroutine task set for this application.
 
