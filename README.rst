@@ -15,6 +15,10 @@ ADSBExchange.com and requires an `API key <https://www.adsbexchange.com/data/>`_
 
 For more information on the TAK suite of tools, see: https://www.tak.gov/
 
+.. image:: https://raw.githubusercontent.com/ampledata/adsbxcot/main/docs/adsbxcot_concept.png
+   :alt: ADSBXCOT Concept.
+   :target: https://github.com/ampledata/adsbxcot/blob/main/docs/adsbxcot_concept.png
+
 
 Support Development
 ===================
@@ -68,8 +72,29 @@ The `adsbxcot` command-line program has 2 runtime arguments::
 
     optional arguments:
       -h, --help            show this help message and exit
-      -c CONFIG_FILE, --CONFIG_FILE CONFIG_FILE
+      -c CONFIG_FILE, --CONFIG_FILE CONFIG_FILE. Default: config.ini
 
+Configuration
+=============
+Configuration parameters can be specified either via environment variables or in
+a INI-stile configuration file.
+
+Parameters:
+
+* **ADSBX_URL**: ADSBExchange.com API or Rapid API URL.
+* **COT_URL**: (*optional*) Destination for Cursor-On-Target messages. See `PyTAK <https://github.com/ampledata/pytak#configuration-parameters>`_ for options.
+* **POLL_INTERVAL**: (*optional*) Period in seconds to poll API. Default: 30
+* **KNOWN_CRAFT**: (*optional*) CSV-style aircraft hints file for overriding callsign, icon, COT Type, etc.
+* **INCLUDE_TISB**: (*optional*) If set, will also including TIS-B identified aircraft.
+* **INCLUDE_ALL_CRAFT**: (*optional*) If set & KNOWN_CRAFT is set, will include aircraft not in KNOWN_CRAFT.
+
+There are other configuration parameters available via `PyTAK <https://github.com/ampledata/pytak#configuration-parameters>`_.
+
+Configuration parameters are imported in the following priority order::
+
+1. config.ini (if exists) or -c <filename> (if specified).
+2. Environment Variables (if set).
+3. Defaults.
 
 
 Source
