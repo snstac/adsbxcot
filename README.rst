@@ -90,9 +90,9 @@ Parameters:
 
 There are other configuration parameters available via `PyTAK <https://github.com/ampledata/pytak#configuration-parameters>`_.
 
-Configuration parameters are imported in the following priority order::
+Configuration parameters are imported in the following priority order:
 
-1. config.ini (if exists) or -c <filename> (if specified).
+1. ``config.ini`` (if exists) or ``-c <filename>`` (if specified).
 2. Environment Variables (if set).
 3. Defaults.
 
