@@ -74,6 +74,7 @@ The `adsbxcot` command-line program has 2 runtime arguments::
       -h, --help            show this help message and exit
       -c CONFIG_FILE, --CONFIG_FILE CONFIG_FILE. Default: config.ini
 
+
 Configuration
 =============
 Configuration parameters can be specified either via environment variables or in

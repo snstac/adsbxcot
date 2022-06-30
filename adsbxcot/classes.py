@@ -20,7 +20,8 @@
 
 import asyncio
 
-from configparser import ConfigParser
+from configparser import SectionProxy
+from typing import Union
 
 import aiohttp
 
@@ -38,12 +39,10 @@ class ADSBXWorker(pytak.QueueWorker):
 
     """Reads ADSBExchange.com ADS-B Data, renders to COT, and puts on Queue."""
 
-    def __init__(self, queue: asyncio.Queue, config: ConfigParser):
+    def __init__(self, queue: asyncio.Queue, config: SectionProxy) -> None:
         super().__init__(queue, config)
-        _ = [x.setFormatter(adsbxcot.LOG_FORMAT) for x in self._logger.handlers]
-
-        self.known_craft = config.get("KNOWN_CRAFT")
-        self.known_craft_db = None
+        self.known_craft_db: Union[dict, None] = None
+        self.session: Union[aiohttp.ClientSession, None] = None
 
     async def handle_data(self, data: list) -> None:
         """
@@ -57,28 +56,24 @@ class ADSBXWorker(pytak.QueueWorker):
             self._logger.warning("Empty aircraft list")
             return None
 
-        icao = None
-        _lac = len(data)
-        _acn = 1
+        lod = len(data)
+        i = 1
         for craft in data:
-            icao = craft.get("hex", craft.get("icao")).strip().upper()
+            i += 1
+            if not isinstance(craft, dict):
+                self._logger.warning("Aircraft list item was not a Python `dict`.")
+                continue
+
+            icao: str = craft.get("hex", craft.get("icao", ""))
+            if icao:
+                icao = icao.strip().upper()
+            else:
+                continue
 
             if "~" in icao and not self.config.getboolean("INCLUDE_TISB"):
                 continue
 
-            known_craft = {}
-
-            if self.known_craft_db:
-                known_craft = (
-                    list(
-                        filter(
-                            lambda x: x["HEX"].strip().upper() == icao,
-                            self.known_craft_db,
-                        )
-                    )
-                    or [{}]
-                )[0]
-                # self._logger.debug("known_craft='%s'", known_craft)
+            known_craft: dict = aircot.get_known_craft(self.known_craft_db, icao, "HEX")
 
             # Skip if we're using known_craft CSV and this Craft isn't found:
             if (
@@ -88,24 +83,16 @@ class ADSBXWorker(pytak.QueueWorker):
             ):
                 continue
 
-            event = adsbxcot.adsbx_to_cot(
+            event: Union[str, None] = adsbxcot.adsbx_to_cot(
                 craft, config=self.config, known_craft=known_craft
             )
 
             if not event:
                 self._logger.debug("Empty COT for craft=%s", craft)
-                _acn += 1
                 continue
 
-            self._logger.debug(
-                "Handling %s/%s %s %s",
-                _acn,
-                _lac,
-                craft.get("hex"),
-                craft.get("flight"),
-            )
+            self._logger.debug("Handling %s/%s ICAO: %s",i, lod, icao)
             await self.put_queue(event)
-            _acn += 1
 
     async def get_adsbx_feed(self, url: str) -> None:
         """
@@ -123,18 +110,22 @@ class ADSBXWorker(pytak.QueueWorker):
         else:
             headers = {"api-auth": api_key}
 
-        async with aiohttp.ClientSession() as session:
-            response = await session.request(method="GET", url=url, headers=headers)
-            response.raise_for_status()
-            json_resp = await response.json()
+        async with self.session.get(url=url, headers=headers) as resp:
+            if resp.status != 200:
+                response_content = await resp.text()
+                self._logger.error("Received HTTP Status %s for %s", resp.status, url)
+                self._logger.error(response_content)
+                return
+
+            json_resp = await resp.json()
+            if json_resp == None:
+                return
+
             data = json_resp.get("ac")
+            if data == None:
+                return
 
-            if data:
-                aircraft_len = len(data)
-            else:
-                aircraft_len = "No"
-            self._logger.debug("Retrieved %s aircraft", aircraft_len)
-
+            self._logger.info("Retrieved %s aircraft messages.", str(len(data) or "No"))
             await self.handle_data(data)
 
     async def run(self, number_of_iterations=-1) -> None:
@@ -151,7 +142,8 @@ class ADSBXWorker(pytak.QueueWorker):
             self._logger.info("Using KNOWN_CRAFT: %s", known_craft)
             self.known_craft_db = aircot.read_known_craft(known_craft)
 
-        while 1:
-            self._logger.info("Polling every %ss: %s", poll_interval, url)
-            await self.get_adsbx_feed(url)
-            await asyncio.sleep(int(poll_interval))
+        async with aiohttp.ClientSession() as self.session:
+            while 1:
+                self._logger.info("%s polling every %ss: %s", self.__class__, poll_interval, url)
+                await self.get_adsbx_feed(url)
+                await asyncio.sleep(int(poll_interval))
