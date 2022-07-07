@@ -83,7 +83,8 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
 
     remarks_fields = []
 
-    light_cot: bool = config.getboolean("LIGHT_COT", adsbxcot.DEFAULT_LIGHT_COT)
+    # FIXME: Should be config.getboolean()
+    light_cot: bool = config.get("LIGHT_COT", adsbxcot.DEFAULT_LIGHT_COT)
     uid_key = config.get("UID_KEY", "ICAO")
     cot_stale = int(config.get("COT_STALE", pytak.DEFAULT_COT_STALE))
     cot_host_id = config.get("COT_HOST_ID", pytak.DEFAULT_HOST_ID)
