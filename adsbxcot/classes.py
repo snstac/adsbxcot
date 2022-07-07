@@ -91,7 +91,7 @@ class ADSBXWorker(pytak.QueueWorker):
                 self._logger.debug("Empty COT for craft=%s", craft)
                 continue
 
-            self._logger.debug("Handling %s/%s ICAO: %s",i, lod, icao)
+            self._logger.debug("Handling %s/%s ICAO: %s", i, lod, icao)
             await self.put_queue(event)
 
     async def get_adsbx_feed(self, url: str) -> None:
@@ -118,11 +118,11 @@ class ADSBXWorker(pytak.QueueWorker):
                 return
 
             json_resp = await resp.json()
-            if json_resp == None:
+            if json_resp is None:
                 return
 
             data = json_resp.get("ac")
-            if data == None:
+            if data is None:
                 return
 
             self._logger.info("Retrieved %s aircraft messages.", str(len(data) or "No"))
@@ -144,6 +144,8 @@ class ADSBXWorker(pytak.QueueWorker):
 
         async with aiohttp.ClientSession() as self.session:
             while 1:
-                self._logger.info("%s polling every %ss: %s", self.__class__, poll_interval, url)
+                self._logger.info(
+                    "%s polling every %ss: %s", self.__class__, poll_interval, url
+                )
                 await self.get_adsbx_feed(url)
                 await asyncio.sleep(int(poll_interval))

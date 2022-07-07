@@ -26,7 +26,7 @@ ADS-B Exchange Cursor-on-Target Gateway.
 :source: <https://github.com/ampledata/adsbxcot>
 """
 
-from .constants import DEFAULT_POLL_INTERVAL  # NOQA
+from .constants import DEFAULT_POLL_INTERVAL, DEFAULT_LIGHT_COT  # NOQA
 
 from .functions import adsbx_to_cot, create_tasks  # NOQA
 

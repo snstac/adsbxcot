@@ -83,6 +83,7 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
 
     remarks_fields = []
 
+    light_cot: bool = config.getboolean("LIGHT_COT", adsbxcot.DEFAULT_LIGHT_COT)
     uid_key = config.get("UID_KEY", "ICAO")
     cot_stale = int(config.get("COT_STALE", pytak.DEFAULT_COT_STALE))
     cot_host_id = config.get("COT_HOST_ID", pytak.DEFAULT_HOST_ID)
@@ -97,35 +98,40 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
     squawk = craft.get("squawk")
     craft_type = craft.get("t", "")
 
-    if flight:
-        flight = flight.strip().upper()
-        remarks_fields.append(flight)
-        aircotx.set("flight", flight)
-
     if reg:
         reg = reg.strip().upper()
         remarks_fields.append(reg)
         aircotx.set("reg", reg)
 
+    if flight:
+        flight = flight.strip().upper()
+        if not light_cot:
+            remarks_fields.append(flight)
+            aircotx.set("flight", flight)
+
     if squawk:
         squawk = squawk.strip().upper()
-        remarks_fields.append(f"Squawk: {squawk}")
-        aircotx.set("squawk", squawk)
+        if not light_cot:
+            remarks_fields.append(f"Squawk:{squawk}")
+            aircotx.set("squawk", squawk)
 
     if icao_hex:
         icao_hex = icao_hex.strip().upper()
-        remarks_fields.append(icao_hex)
-        aircotx.set("icao", icao_hex)
+        if not light_cot:
+            remarks_fields.append(icao_hex)
+            aircotx.set("icao", icao_hex)
 
     if cat:
         cat = cat.strip().upper()
-        remarks_fields.append(f"Cat.: {cat}")
-        aircotx.set("cat", cat)
+        if not light_cot:
+            remarks_fields.append(f"Cat:{cat}")
+            aircotx.set("cat", cat)
 
     if craft_type:
         craft_type = craft_type.strip().upper()
-        remarks_fields.append(f"Type: {craft_type}")
-        aircotx.set("type", craft_type)
+        if not light_cot:
+            remarks_fields.append(f"Type:{craft_type}")
+            aircotx.set("type", craft_type)
 
     if "REG" in uid_key and reg:
         cot_uid = f"REG-{reg}"
@@ -205,7 +211,8 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
 
     root.append(point)
     root.append(detail)
-    root.append(aircotx)
+    if not light_cot:
+        root.append(aircotx)
 
     return root
 
