@@ -32,3 +32,5 @@ redis-server.log
 redis-server/
 __pycache__
 .ipynb_checkpoints/
+.python-version
+config.ini

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Copyright 2022 Greg Albrecht <oss@undef.net>
+# Copyright Sensors & Signals LLC https://www.snstac.com
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# Author:: Greg Albrecht W2GMD <oss@undef.net>
 #
 
 """ADSBXCOT Class Definitions."""
@@ -30,14 +28,14 @@ import aircot
 import adsbxcot
 
 
-__author__ = "Greg Albrecht W2GMD <oss@undef.net>"
-__copyright__ = "Copyright 2022 Greg Albrecht"
+__author__ = "Greg Albrecht <gba@snstac.com>"
+__copyright__ = "Copyright Sensors & Signals LLC https://www.snstac.com"
 __license__ = "Apache License, Version 2.0"
 
 
 class ADSBXWorker(pytak.QueueWorker):
 
-    """Reads ADSBExchange.com ADS-B Data, renders to COT, and puts on Queue."""
+    """Reads ADS-B Aggregator Data, renders to COT, and puts on Queue."""
 
     def __init__(self, queue: asyncio.Queue, config: SectionProxy) -> None:
         super().__init__(queue, config)
@@ -96,8 +94,8 @@ class ADSBXWorker(pytak.QueueWorker):
 
     async def get_adsbx_feed(self, url: str) -> None:
         """
-        ADSBExchange.com ADS-B Feed API Client wrapper.
-        Connects to ADSBX API and passes messages to `self.handle_message()`.
+        ADS-B Aggregator API Client wrapper.
+        Connects to API and passes messages to `self.handle_message()`.
         """
         api_key: str = self.config.get("API_KEY")
 
@@ -132,7 +130,7 @@ class ADSBXWorker(pytak.QueueWorker):
         """Runs this Thread, Reads from Pollers."""
         self._logger.info("Running %s", self.__class__)
 
-        url: str = self.config.get("ADSBX_URL")
+        url: str = self.config.get("FEED_URL", self.config.get("ADSBX_URL"))
         poll_interval: str = self.config.get(
             "POLL_INTERVAL", adsbxcot.DEFAULT_POLL_INTERVAL
         )

@@ -50,7 +50,7 @@ setuptools.setup(
     package_dir={__title__: __title__},
     url=f"https://github.com/ampledata/{__title__}",
     entry_points={"console_scripts": [f"{__title__} = {__title__}.commands:main"]},
-    description="ADSBExchange.com ADS-B to Cursor-On-Target Gateway.",
+    description="PyTAK gateway for displaying aircraft tracks from ADS-B Aggregators (ADSBExchange, adsb.fi, et al.) in TAK Products (ATAK, WinTAK, iTAK, TAK Server, TAKX).",
     author="Greg Albrecht",
     author_email="oss@undef.net",
     package_data={"": ["LICENSE"]},
