@@ -1,7 +1,7 @@
 site_name: ADSBXCOT - Display Aircraft in TAK
 site_url: https://adsbxcot.rtfd.io/
 repo_url: https://github.com/snstac/adsbxcot/
-site_description: ADSBXCOT is a gateway for displaying aircraft tracks from ADS-B Aggregators (ADSBExchange, adsb.fi, et al.) in TAK Products (ATAK, WinTAK, iTAK, TAK Server, TAKX).
+site_description: A gateway for displaying aircraft tracks from ADS-B Aggregators in TAK Products, including ATAK.
 site_author: Greg Albrecht <gba@snstac.com>
 copyright: Copyright Sensors & Signals LLC https://www.snstac.com
 
