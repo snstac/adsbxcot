@@ -5,7 +5,7 @@
 Display Aircraft in TAK
 ***********************
 
-ADSBXCOT is a PyTAK gateway for displaying aircraft tracks from ADS-B Aggregators in [TAK Products](https://tak.gov>), including ATAK, WinTAK & iTAK.
+ADSBXCOT is a PyTAK gateway for displaying aircraft tracks from ADS-B Aggregators in `TAK Products <https://tak.gov>`_, including ATAK, WinTAK & iTAK.
 
 ADSBXCOT converts ADS-B messages from aircraft into Cursor on Target (CoT), as spoken by TAK. ADS-B messages are read from global ADS-B data aggregators. ADS-B data sent to TAK retains much of the aircraft's track, course & speed parameters, and includes other metadata about the aircraft: Flight, Tail, Category, and et al.
 
