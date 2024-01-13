@@ -30,9 +30,7 @@ __copyright__ = "Copyright Sensors & Signals LLC https://www.snstac.com"
 __license__ = "Apache License, Version 2.0"
 
 
-def create_tasks(
-    config: ConfigParser, clitool: pytak.CLITool
-) -> Set[pytak.Worker,]:
+def create_tasks(config: ConfigParser, clitool: pytak.CLITool) -> Set[pytak.Worker,]:
     """
     Creates specific coroutine task set for this application.
 
@@ -55,7 +53,7 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
     craft: dict, config: Union[dict, None] = None, known_craft: Union[dict, None] = None
 ) -> Union[ET.Element, None]:
     """
-    Serializes a ADSBExchange.com aircraft objects as Cursor-On-Target XML.
+    Serializes ADS-B Aggregator aircraft objects as Cursor on Target.
 
     Parameters
     ----------
@@ -68,7 +66,7 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
     Returns
     -------
     `xml.etree.ElementTree.Element`
-        Cursor-On-Target XML ElementTree object.
+        Cursor on Target XML ElementTree object.
     """
     known_craft: dict = known_craft or {}
     config: dict = config or {}
@@ -81,8 +79,6 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
 
     remarks_fields = []
 
-    # FIXME: Should be config.getboolean()
-    light_cot: bool = config.get("LIGHT_COT", adsbxcot.DEFAULT_LIGHT_COT)
     uid_key = config.get("UID_KEY", "ICAO")
     cot_stale = int(config.get("COT_STALE", pytak.DEFAULT_COT_STALE))
     cot_host_id = config.get("COT_HOST_ID", pytak.DEFAULT_HOST_ID)
@@ -104,33 +100,28 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
 
     if flight:
         flight = flight.strip().upper()
-        if not light_cot:
-            remarks_fields.append(flight)
-            aircotx.set("flight", flight)
+        remarks_fields.append(flight)
+        aircotx.set("flight", flight)
 
     if squawk:
         squawk = squawk.strip().upper()
-        if not light_cot:
-            remarks_fields.append(f"Squawk:{squawk}")
-            aircotx.set("squawk", squawk)
+        remarks_fields.append(f"Squawk:{squawk}")
+        aircotx.set("squawk", squawk)
 
     if icao_hex:
         icao_hex = icao_hex.strip().upper()
-        if not light_cot:
-            remarks_fields.append(icao_hex)
-            aircotx.set("icao", icao_hex)
+        remarks_fields.append(icao_hex)
+        aircotx.set("icao", icao_hex)
 
     if cat:
         cat = cat.strip().upper()
-        if not light_cot:
-            remarks_fields.append(f"Cat:{cat}")
-            aircotx.set("cat", cat)
+        remarks_fields.append(f"Cat:{cat}")
+        aircotx.set("cat", cat)
 
     if craft_type:
         craft_type = craft_type.strip().upper()
-        if not light_cot:
-            remarks_fields.append(f"Type:{craft_type}")
-            aircotx.set("type", craft_type)
+        remarks_fields.append(f"Type:{craft_type}")
+        aircotx.set("type", craft_type)
 
     if "REG" in uid_key and reg:
         cot_uid = f"REG-{reg}"
@@ -158,18 +149,6 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
     cat = aircot.set_category(cat, known_craft)
     cot_type = aircot.set_cot_type(icao_hex, cat, flight, known_craft)
 
-    point = ET.Element("point")
-    point.set("lat", str(lat))
-    point.set("lon", str(lon))
-
-    point.set("ce", str(craft.get("nac_p", "9999999.0")))
-    point.set("le", str(craft.get("nac_v", "9999999.0")))
-
-    point.set("hae", aircot.functions.get_hae(craft.get("alt_geom")))
-
-    uid = ET.Element("UID")
-    uid.set("Droid", str(callsign))
-
     contact = ET.Element("contact")
     contact.set("callsign", str(callsign))
 
@@ -180,9 +159,9 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
 
     detail = ET.Element("detail")
     detail.set("uid", cot_uid)
-    detail.append(uid)
     detail.append(contact)
     detail.append(track)
+    detail.append(aircotx)
 
     icon = known_craft.get("ICON")
     if icon:
@@ -191,29 +170,30 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
         detail.append(usericon)
 
     remarks = ET.Element("remarks")
-
     remarks_fields.append(f"{cot_host_id}")
-
     _remarks = " ".join(list(filter(None, remarks_fields)))
-
     remarks.text = _remarks
     detail.append(remarks)
 
-    root = ET.Element("event")
-    root.set("version", "2.0")
-    root.set("type", cot_type)
-    root.set("uid", cot_uid)
-    root.set("how", "m-g")
-    root.set("time", pytak.cot_time())
-    root.set("start", pytak.cot_time())
-    root.set("stale", pytak.cot_time(cot_stale))
+    cot_d = {
+        "lat": str(lat),
+        "lon": str(lon),
+        "ce": str(craft.get("nac_p", "9999999.0")),
+        "le": str(craft.get("nac_v", "9999999.0")),
+        "hae": aircot.functions.get_hae(craft.get("alt_geom")),
+        "uid": cot_uid,
+        "cot_type": cot_type,
+        "stale": cot_stale,
+    }
+    cot = pytak.gen_cot_xml(**cot_d)
 
-    root.append(point)
-    root.append(detail)
-    if not light_cot:
-        root.append(aircotx)
+    _detail = cot.findall("detail")[0]
+    flowtags = _detail.findall("_flow-tags_")
+    detail.extend(flowtags)
+    cot.remove(_detail)
+    cot.append(detail)
 
-    return root
+    return cot
 
 
 def adsbx_to_cot(

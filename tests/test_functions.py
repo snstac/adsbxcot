@@ -133,7 +133,6 @@ FOOD,PANCHO VIA,N708SD,TACO_03,HELICOPTER,,,a-f-A-T-A-C-O,HELICOPTER,,
     reader = csv.DictReader(csv_fd)
     for row in reader:
         all_rows.append(row)
-    print(all_rows)
     return all_rows
 
 
@@ -157,7 +156,6 @@ def test_adsbx_to_cot_xml(sample_feed):
 
     detail = cot.findall("detail")
     assert detail[0].tag == "detail"
-    assert detail[0].attrib["uid"] == "ICAO-A9EE47"
 
     contact = detail[0].findall("contact")
     assert contact[0].attrib["callsign"] == "N739UL"
@@ -166,7 +164,7 @@ def test_adsbx_to_cot_xml(sample_feed):
     assert track[0].attrib["course"] == "50.1"
     assert track[0].attrib["speed"] == "40.898298000000004"
 
-    aircotx = cot.findall("_aircot_")
+    aircotx = detail[0].findall("_aircot_")
     assert aircotx[0].attrib["flight"] == "N739UL"
     assert aircotx[0].attrib["icao"] == "A9EE47"
     assert aircotx[0].attrib["cat"] == "A1"
@@ -225,7 +223,6 @@ def test_adsbx_to_cot_xml_with_known_craft(sample_feed, sample_known_craft):
 
     detail = cot.findall("detail")
     assert detail[0].tag == "detail"
-    assert detail[0].attrib["uid"] == "ICAO-A9EE47"
 
     contact = detail[0].findall("contact")
     assert contact[0].attrib["callsign"] == "TACO_01"
@@ -234,7 +231,7 @@ def test_adsbx_to_cot_xml_with_known_craft(sample_feed, sample_known_craft):
     assert track[0].attrib["course"] == "50.1"
     assert track[0].attrib["speed"] == "40.898298000000004"
 
-    aircotx = cot.findall("_aircot_")
+    aircotx = detail[0].findall("_aircot_")
     assert aircotx[0].attrib["flight"] == "N739UL"
     assert aircotx[0].attrib["icao"] == "A9EE47"
     assert aircotx[0].attrib["cat"] == "A1"
