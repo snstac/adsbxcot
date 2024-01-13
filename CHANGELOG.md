@@ -1,6 +1,16 @@
 ## ADSBXCOT 6.0.0
-New for 2024!
+- New for 2024!
 - Removed 'light' mode for CoT.
+- Documentation Updates.
+- Fixes #17. Added ReadTheDocs site.
+- Fixes #18: Deprecate ADSBX_URL in favor of FEED_URL akin to adsbcot.
+- Fixes #19: Add support for Python 3.10, 3.11, 3.12
+- Fixes #15: Add config parameter for 'only show TIS-B': TISB_ONLY
+- Fixes #20: Make _aircot_ a sub-element of detail.
+- Fixes #21: Use PyTAK's gen_cot_xml()
+- Fixes #22: Move setup.py metadata to setup.cfg
+- Fixes #23: Python 3.6 tests failing.
+- Fixes #24: Pin Github actions to Ubuntu 20.04
 
 ## ADSBXCOT 5.1.0
 - Added XML Declaration header to output CoT XML.
