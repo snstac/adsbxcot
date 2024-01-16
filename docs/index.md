@@ -1,4 +1,4 @@
-![ATAK Screenshot with ADSBXCOT aircraft tracks.](atak_screenshot_with_pytak_logo-x25.jpg)
+![ATAK Screenshot with ADSBXCOT aircraft tracks.](atak_screenshot_with_pytak_logo-x25.png)
 
 # Display Aircraft in TAK
 

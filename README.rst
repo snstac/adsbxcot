@@ -1,6 +1,5 @@
-.. image:: https://raw.githubusercontent.com/ampledata/adsbxcot/main/docs/Screenshot_20201026-142037_ATAK-25p.jpg
+.. image:: https://adsbxcot.readthedocs.io/en/latest/atak_screenshot_with_pytak_logo-x25.png
    :alt: Screenshot of ADS-B PLI in ATAK.
-   :target: https://github.com/ampledata/adsbxcot/blob/main/docs/Screenshot_20201026-142037_ATAK.jpg
 
 Display Aircraft in TAK
 ***********************
@@ -20,9 +19,9 @@ Have your own ADS-B receiver? Check out `ADSBCOT <https://adsbcot.rtfd.io>`_.
 Supported ADS-B Aggregators:
 
 - ADS-B Exchange: https://www.adsbexchange.com/
-- adsb.fi: https://adsb.fi
+- adsb.fi: https://adsb.fi/
 - ADS-B Hub: https://www.adsbhub.org/
-- Airplanes.Live: https://airplanes.live
+- Airplanes.Live: https://airplanes.live/
 
 License
 =======
