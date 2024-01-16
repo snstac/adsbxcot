@@ -22,7 +22,7 @@ Supported ADS-B Aggregators:
 - ADS-B Exchange: https://www.adsbexchange.com/
 - adsb.fi: https://adsb.fi
 - ADS-B Hub: https://www.adsbhub.org/
-- Airplanes.Live: https://Airplanes.Live
+- Airplanes.Live: https://airplanes.live
 
 License
 =======

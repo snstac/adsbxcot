@@ -35,7 +35,7 @@ except ImportError:
         "Unable to import required modules, ignoring (Python 3.6 build work-around)."
     )
 
-__version__ = "6.0.0-beta1"
+__version__ = "6.0.0"
 __author__ = "Greg Albrecht <gba@snstac.com>"
 __copyright__ = "Copyright Sensors & Signals LLC https://www.snstac.com"
 __license__ = "Apache License, Version 2.0"
