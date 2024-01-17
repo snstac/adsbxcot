@@ -1,5 +1,5 @@
 .. image:: https://adsbxcot.readthedocs.io/en/latest/atak_screenshot_with_pytak_logo-x25.png
-   :alt: Screenshot of ADS-B PLI in ATAK.
+   :alt: ATAK screenshot with PyTAK logo.
 
 Display Aircraft in TAK
 ***********************
@@ -14,7 +14,9 @@ ADSBXCOT runs in any Python 3.6+ environment, on both Windows & Linux.
 
 `Documentation is available here. <https://adsbxcot.rtfd.io>`_
 
-Have your own ADS-B receiver? Check out `ADSBCOT <https://adsbcot.rtfd.io>`_.
+   Have your own ADS-B receiver? Check out `ADSBCOT <https://adsbcot.rtfd.io>`_.
+   
+   Want a turn-key ADS-B to TAK Gateway? Check out `AirTAK <https://www.snstac.com/store/p/airtak-v1>`_.
 
 Supported ADS-B Aggregators:
 

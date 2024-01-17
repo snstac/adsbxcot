@@ -1,4 +1,9 @@
+## ADSBXCOT 6.0.1
+
+- Fixes #25: Missing PyTAK version requirement, should be 6.2.0.
+
 ## ADSBXCOT 6.0.0
+
 - New for 2024!
 - Removed 'light' mode for CoT.
 - Documentation Updates.
