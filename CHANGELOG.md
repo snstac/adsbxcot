@@ -1,3 +1,7 @@
+## ADSBXCOT 6.0.2
+
+- Fixes #26: Missing 'adsbxcot' command.
+
 ## ADSBXCOT 6.0.1
 
 - Fixes #25: Missing PyTAK version requirement, should be 6.2.0.

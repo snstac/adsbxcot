@@ -23,6 +23,11 @@ Display Aircraft in TAK.
 :source: <https://github.com/snstac/adsbxcot>
 """
 
+__version__ = "6.0.2"
+__author__ = "Greg Albrecht <gba@snstac.com>"
+__copyright__ = "Copyright Sensors & Signals LLC https://www.snstac.com"
+__license__ = "Apache License, Version 2.0"
+
 # Python 3.6 test/build work-around:
 try:
     from .constants import DEFAULT_POLL_INTERVAL, DEFAULT_LIGHT_COT  # NOQA
@@ -34,8 +39,3 @@ except ImportError:
     warnings.warn(
         "Unable to import required modules, ignoring (Python 3.6 build work-around)."
     )
-
-__version__ = "6.0.1"
-__author__ = "Greg Albrecht <gba@snstac.com>"
-__copyright__ = "Copyright Sensors & Signals LLC https://www.snstac.com"
-__license__ = "Apache License, Version 2.0"
