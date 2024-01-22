@@ -1,6 +1,7 @@
-## ADSBXCOT 6.0.2
+## ADSBXCOT 6.0.4
 
 - Fixes #26: Missing 'adsbxcot' command.
+- Bumped 6.0.4 from 6.0.1 because of tagging issues.
 
 ## ADSBXCOT 6.0.1
 
