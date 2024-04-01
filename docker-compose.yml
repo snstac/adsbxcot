@@ -1,0 +1,9 @@
+---
+version: '3'
+services:
+  adsbxcot:
+    image: adsbxcot:latest
+    build:
+      context: .
+    restart: always
+    container_name: adsbxcot

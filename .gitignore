@@ -34,3 +34,4 @@ __pycache__
 .ipynb_checkpoints/
 .python-version
 config.ini
+*.pem
