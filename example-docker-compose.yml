@@ -1,0 +1,24 @@
+services:
+  adsbxcot:
+    image: adsbxcot
+    container_name: adsbxcot
+    build:
+      context: .
+    environment:
+      COT_URL: tls://host.docker.internal:8089 # assume TAK server running natively on the host
+      # example TLS config using Docker secrets:
+      PYTAK_TLS_CLIENT_CERT: /run/secrets/adsbxcot_cert
+      PYTAK_TLS_CLIENT_KEY: /run/secrets/adsbxcot_key
+      TZ: America/New_York # not needed but it's always nice to get your timezones correct
+    restart: on-failure:20 # try a bunch of times in case the TAK server is still booting up
+    volumes:
+      - ./config.ini:/config.ini # assume ADSBX_URL and API_KEY will be in here
+    secrets:
+      - adsbxcot_cert
+      - adsbxcot_key
+
+secrets:
+  adsbxcot_cert:
+    file: ./tak/certs/files/ADSB.pem # change path
+  adsbxcot_key:
+    file: ./tak/certs/files/ADSB.key # change path
