@@ -51,7 +51,8 @@ class ADSBXWorker(pytak.QueueWorker):
         i = 1
         for craft in data:
             i += 1
-            icao = await self.process_craft(craft)
+            await self.process_craft(craft)
+            icao: str = craft.get("hex", craft.get("icao", ""))
             self._logger.debug("Handling %s/%s ICAO: %s", i, lod, icao)
 
     def calc_altitude(self, craft: dict) -> dict:
