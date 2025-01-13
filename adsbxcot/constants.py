@@ -16,10 +16,5 @@
 
 """ADSBXCOT Constants."""
 
-__author__ = "Greg Albrecht <gba@snstac.com>"
-__copyright__ = "Copyright Sensors & Signals LLC https://www.snstac.com"
-__license__ = "Apache License, Version 2.0"
-
-
 DEFAULT_POLL_INTERVAL: int = 30
-DEFAULT_LIGHT_COT: bool = False
+DEFAULT_RAPIDAPI_HOST: str = "adsb-exchange1.p.rapidapi.com"

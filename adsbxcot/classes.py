@@ -19,7 +19,7 @@
 import asyncio
 
 from configparser import SectionProxy
-from typing import Union
+from typing import Union, Optional
 
 import aiohttp
 
@@ -28,24 +28,17 @@ import aircot
 import adsbxcot
 
 
-__author__ = "Greg Albrecht <gba@snstac.com>"
-__copyright__ = "Copyright Sensors & Signals LLC https://www.snstac.com"
-__license__ = "Apache License, Version 2.0"
-
-
 class ADSBXWorker(pytak.QueueWorker):
-
     """Reads ADS-B Aggregator Data, renders to COT, and puts on Queue."""
 
     def __init__(self, queue: asyncio.Queue, config: SectionProxy) -> None:
         super().__init__(queue, config)
         self.known_craft_db: Union[dict, None] = None
         self.session: Union[aiohttp.ClientSession, None] = None
+        self.altitudes: dict = {}
 
     async def handle_data(self, data: list) -> None:
-        """
-        Transforms Aircraft ADS-B data to COT and puts it onto tx queue.
-        """
+        """Marshal ADS-B data into CoT, and put it onto a TX queue."""
         if not isinstance(data, list):
             self._logger.warning("Invalid aircraft data, should be a Python list.")
             return None
@@ -58,56 +51,100 @@ class ADSBXWorker(pytak.QueueWorker):
         i = 1
         for craft in data:
             i += 1
-            if not isinstance(craft, dict):
-                self._logger.warning("Aircraft list item was not a Python `dict`.")
-                continue
-
-            icao: str = craft.get("hex", craft.get("icao", ""))
-            if icao:
-                icao = icao.strip().upper()
-            else:
-                continue
-
-            if "~" in icao:
-                if not self.config.getboolean("INCLUDE_TISB"):
-                    continue
-            else:
-                if self.config.getboolean("TISB_ONLY"):
-                    continue
-
-            known_craft: dict = aircot.get_known_craft(self.known_craft_db, icao, "HEX")
-
-            # Skip if we're using known_craft CSV and this Craft isn't found:
-            if (
-                self.known_craft_db
-                and not known_craft
-                and not self.config.getboolean("INCLUDE_ALL_CRAFT")
-            ):
-                continue
-
-            event: Union[str, None] = adsbxcot.adsbx_to_cot(
-                craft, config=self.config, known_craft=known_craft
-            )
-
-            if not event:
-                self._logger.debug("Empty COT for craft=%s", craft)
-                continue
-
+            icao = await self.process_craft(craft)
             self._logger.debug("Handling %s/%s ICAO: %s", i, lod, icao)
-            await self.put_queue(event)
 
-    async def get_adsbx_feed(self, url: str) -> None:
+    def calc_altitude(self, craft: dict) -> dict:
+        """Calculate altitude based on barometric and geometric altitude."""
+        alt_baro = craft.get("alt_baro", "")
+        alt_geom = craft.get("alt_geom", "")
+
+        if not alt_baro:
+            return {}
+
+        if alt_baro == "ground":
+            return {}
+
+        alt_baro = float(alt_baro)
+        if alt_geom:
+            self.altitudes["alt_geom"] = float(alt_geom)
+            self.altitudes["alt_baro"] = alt_baro
+        elif "alt_baro" in self.altitudes and "alt_geom" in self.altitudes:
+            ref_alt_baro = float(self.altitudes["alt_baro"])
+            alt_baro_offset = alt_baro - ref_alt_baro
+            return {
+                "x_alt_baro_offset": alt_baro_offset,
+                "x_alt_geom": ref_alt_baro + alt_baro_offset,
+            }
+
+        return {}
+
+    async def process_craft(self, craft: dict) -> Optional[str]:
+        """Process individual aircraft data."""
+        if not isinstance(craft, dict):
+            self._logger.warning("Aircraft list item was not a Python `dict`.")
+            return None
+
+        icao: str = craft.get("hex", craft.get("icao", ""))
+        if icao:
+            icao = icao.strip().upper()
+        else:
+            self._logger.warning("No ICAO in craft data: %s", craft)
+            return None
+
+        if "~" in icao:
+            if not self.config.getboolean("INCLUDE_TISB"):
+                return None
+        else:
+            if self.config.getboolean("TISB_ONLY"):
+                return None
+
+        known_craft: dict = aircot.get_known_craft(self.known_craft_db, icao, "HEX")
+
+        if (
+            self.known_craft_db
+            and not known_craft
+            and not self.config.getboolean("INCLUDE_ALL_CRAFT")
+        ):
+            self._logger.debug("Not including unknown craft: %s", icao)
+            return None
+
+        ref_alts = self.calc_altitude(craft)
+        craft.update(ref_alts)
+
+        if not craft:
+            self._logger.debug("No altitude data for craft: %s", icao)
+            return None
+
+        event: Optional[bytes] = adsbxcot.adsbx_to_cot(
+            craft, config=self.config, known_craft=known_craft
+        )
+
+        if not event:
+            self._logger.debug("Empty CoT for craft: %s", icao)
+            return None
+
+        await self.put_queue(event)
+        return icao
+
+    async def get_feed(self, url: str) -> None:
         """
         ADS-B Aggregator API Client wrapper.
         Connects to API and passes messages to `self.handle_message()`.
         """
+        if self.session is None or self.session.closed:
+            self._logger.error("Session is closed, cannot proceed.")
+            return
+
         api_key: str = self.config.get("API_KEY")
 
         # Support for either direct ADSBX API, or RapidAPI:
-        if "rapidapi" in url:
+        if "rapidapi" in url.lower():
             headers = {
                 "x-rapidapi-key": api_key,
-                "x-rapidapi-host": "adsbexchange-com1.p.rapidapi.com",
+                "x-rapidapi-host": self.config.get(
+                    "RAPIDAPI_HOST", adsbxcot.DEFAULT_RAPIDAPI_HOST
+                ),
             }
         else:
             headers = {"api-auth": api_key}
@@ -115,29 +152,39 @@ class ADSBXWorker(pytak.QueueWorker):
         async with self.session.get(url=url, headers=headers) as resp:
             if resp.status != 200:
                 response_content = await resp.text()
-                self._logger.error("Received HTTP Status %s for %s", resp.status, url)
-                self._logger.error(response_content)
+                self._logger.warning("Received HTTP Status %s for %s", resp.status, url)
+                self._logger.warning(response_content)
                 return
 
             json_resp = await resp.json()
             if json_resp is None:
+                self._logger.warning("No JSON response from %s", url)
                 return
 
             data = json_resp.get("ac")
             if data is None:
+                self._logger.warning("No 'ac' key in JSON response from %s", url)
                 return
 
             self._logger.info("Retrieved %s aircraft messages.", str(len(data) or "No"))
             await self.handle_data(data)
 
-    async def run(self, number_of_iterations=-1) -> None:
+    async def run(self, _=-1) -> None:
         """Runs this Thread, Reads from Pollers."""
         self._logger.info("Running %s", self.__class__)
 
-        url: str = self.config.get("FEED_URL", self.config.get("ADSBX_URL"))
-        poll_interval: str = self.config.get(
-            "POLL_INTERVAL", adsbxcot.DEFAULT_POLL_INTERVAL
-        )
+        url: Optional[str] = self.config.get("FEED_URL")
+        if not url:
+            self._logger.error("FEED_URL not set in config, cannot proceed.")
+            raise ValueError("FEED_URL not set in config, cannot proceed.")
+
+        poll_interval: Union[int, str, None] = self.config.get("POLL_INTERVAL")
+        if poll_interval == "" or poll_interval is None:
+            self._logger.info(
+                "POLL_INTERVAL not set, using default of %s seconds.",
+                adsbxcot.DEFAULT_POLL_INTERVAL,
+            )
+            poll_interval = adsbxcot.DEFAULT_POLL_INTERVAL
 
         known_craft = self.config.get("KNOWN_CRAFT")
         if known_craft:
@@ -145,9 +192,9 @@ class ADSBXWorker(pytak.QueueWorker):
             self.known_craft_db = aircot.read_known_craft(known_craft)
 
         async with aiohttp.ClientSession() as self.session:
-            while 1:
+            while self.session.closed is False:
                 self._logger.info(
                     "%s polling every %ss: %s", self.__class__, poll_interval, url
                 )
-                await self.get_adsbx_feed(url)
+                await self.get_feed(url)
                 await asyncio.sleep(int(poll_interval))

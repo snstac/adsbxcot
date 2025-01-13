@@ -14,28 +14,10 @@
 # limitations under the License.
 #
 
-"""
-Display Aircraft in TAK.
+"""Display Aircraft in TAK."""
 
-:author: Greg Albrecht <gba@snstac.com>
-:copyright: Copyright Sensors & Signals LLC https://www.snstac.com
-:license: Apache License, Version 2.0
-:source: <https://github.com/snstac/adsbxcot>
-"""
+__version__ = "7.0.0"
 
-__version__ = "6.0.4"
-__author__ = "Greg Albrecht <gba@snstac.com>"
-__copyright__ = "Copyright Sensors & Signals LLC https://www.snstac.com"
-__license__ = "Apache License, Version 2.0"
-
-# Python 3.6 test/build work-around:
-try:
-    from .constants import DEFAULT_POLL_INTERVAL, DEFAULT_LIGHT_COT  # NOQA
-    from .functions import adsbx_to_cot, create_tasks  # NOQA
-    from .classes import ADSBXWorker  # NOQA
-except ImportError:
-    import warnings
-
-    warnings.warn(
-        "Unable to import required modules, ignoring (Python 3.6 build work-around)."
-    )
+from .constants import DEFAULT_POLL_INTERVAL, DEFAULT_RAPIDAPI_HOST  # NOQA
+from .functions import adsbx_to_cot, create_tasks  # NOQA
+from .classes import ADSBXWorker  # NOQA

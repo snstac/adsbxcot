@@ -18,19 +18,15 @@
 
 import xml.etree.ElementTree as ET
 
-from configparser import ConfigParser
-from typing import Union, Set
+from configparser import SectionProxy
+from typing import Union, Set, Optional
 
 import pytak
 import aircot
 import adsbxcot  # pylint: disable=cyclic-import
 
-__author__ = "Greg Albrecht <gba@snstac.com>"
-__copyright__ = "Copyright Sensors & Signals LLC https://www.snstac.com"
-__license__ = "Apache License, Version 2.0"
 
-
-def create_tasks(config: ConfigParser, clitool: pytak.CLITool) -> Set[pytak.Worker,]:
+def create_tasks(config: SectionProxy, clitool: pytak.CLITool) -> Set[pytak.Worker,]:
     """
     Creates specific coroutine task set for this application.
 
@@ -50,8 +46,8 @@ def create_tasks(config: ConfigParser, clitool: pytak.CLITool) -> Set[pytak.Work
 
 
 def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,too-many-statements
-    craft: dict, config: Union[dict, None] = None, known_craft: Union[dict, None] = None
-) -> Union[ET.Element, None]:
+    craft: dict, config: Optional[dict] = None, known_craft: Optional[dict] = None
+) -> Optional[ET.Element]:
     """
     Serializes ADS-B Aggregator aircraft objects as Cursor on Target.
 
@@ -68,8 +64,8 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
     `xml.etree.ElementTree.Element`
         Cursor on Target XML ElementTree object.
     """
-    known_craft: dict = known_craft or {}
-    config: dict = config or {}
+    known_craft = known_craft or {}
+    config = config or {}
 
     lat = craft.get("lat")
     lon = craft.get("lon")
@@ -122,6 +118,14 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
         craft_type = craft_type.strip().upper()
         remarks_fields.append(f"Type:{craft_type}")
         aircotx.set("type", craft_type)
+
+    if "alt_geom" in craft:
+        remarks_fields.append(f"Alt:{craft.get('alt_geom')}")
+
+    aircotx.set("alt_geom", str(craft.get("alt_geom")))
+    aircotx.set("x_alt_geom", str(craft.get("x_alt_geom")))
+    aircotx.set("alt_baro", str(craft.get("alt_baro")))
+    aircotx.set("x_alt_baro_offset", str(craft.get("x_alt_baro_offset")))
 
     if "REG" in uid_key and reg:
         cot_uid = f"REG-{reg}"
@@ -180,7 +184,7 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
         "lon": str(lon),
         "ce": str(craft.get("nac_p", "9999999.0")),
         "le": str(craft.get("nac_v", "9999999.0")),
-        "hae": aircot.functions.get_hae(craft.get("alt_geom")),
+        "hae": aircot.functions.get_hae(craft.get("alt_geom", craft.get("alt_geom_x"))),
         "uid": cot_uid,
         "cot_type": cot_type,
         "stale": cot_stale,
@@ -197,8 +201,8 @@ def adsbx_to_cot_xml(  # NOQA pylint: disable=too-many-locals,too-many-branches,
 
 
 def adsbx_to_cot(
-    craft: dict, config: Union[dict, None] = None, known_craft: Union[dict, None] = None
-) -> Union[bytes, None]:
+    craft: dict, config: Optional[dict] = None, known_craft: Optional[dict] = None
+) -> Optional[bytes]:
     """Wrapper that returns COT as an XML string."""
     cot: Union[ET.Element, None] = adsbx_to_cot_xml(craft, config, known_craft)
     return (
