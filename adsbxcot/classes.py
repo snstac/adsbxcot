@@ -37,49 +37,6 @@ class ADSBXWorker(pytak.QueueWorker):
         self.session: Union[aiohttp.ClientSession, None] = None
         self.altitudes: dict = {}
 
-    async def handle_data(self, data: list) -> None:
-        """Marshal ADS-B data into CoT, and put it onto a TX queue."""
-        if not isinstance(data, list):
-            self._logger.warning("Invalid aircraft data, should be a Python list.")
-            return None
-
-        if not data:
-            self._logger.warning("Empty aircraft list")
-            return None
-
-        lod = len(data)
-        i = 1
-        for craft in data:
-            i += 1
-            await self.process_craft(craft)
-            icao: str = craft.get("hex", craft.get("icao", ""))
-            self._logger.debug("Handling %s/%s ICAO: %s", i, lod, icao)
-
-    def calc_altitude(self, craft: dict) -> dict:
-        """Calculate altitude based on barometric and geometric altitude."""
-        alt_baro = craft.get("alt_baro", "")
-        alt_geom = craft.get("alt_geom", "")
-
-        if not alt_baro:
-            return {}
-
-        if alt_baro == "ground":
-            return {}
-
-        alt_baro = float(alt_baro)
-        if alt_geom:
-            self.altitudes["alt_geom"] = float(alt_geom)
-            self.altitudes["alt_baro"] = alt_baro
-        elif "alt_baro" in self.altitudes and "alt_geom" in self.altitudes:
-            ref_alt_baro = float(self.altitudes["alt_baro"])
-            alt_baro_offset = alt_baro - ref_alt_baro
-            return {
-                "x_alt_baro_offset": alt_baro_offset,
-                "x_alt_geom": ref_alt_baro + alt_baro_offset,
-            }
-
-        return {}
-
     async def process_craft(self, craft: dict) -> Optional[str]:
         """Process individual aircraft data."""
         if not isinstance(craft, dict):
@@ -127,6 +84,48 @@ class ADSBXWorker(pytak.QueueWorker):
 
         await self.put_queue(event)
         return icao
+
+    async def handle_data(self, data: list) -> None:
+        """Marshal ADS-B data into CoT, and put it onto a TX queue."""
+        if not isinstance(data, list):
+            self._logger.warning("Invalid aircraft data, should be a Python list.")
+            return None
+
+        if not data:
+            self._logger.warning("Empty aircraft list")
+            return None
+
+        lod = len(data)
+        i = 1
+        for craft in data:
+            i += 1
+            icao = await self.process_craft(craft)
+            self._logger.debug("Handling %s/%s ICAO: %s", i, lod, icao)
+
+    def calc_altitude(self, craft: dict) -> dict:
+        """Calculate altitude based on barometric and geometric altitude."""
+        alt_baro = craft.get("alt_baro", "")
+        alt_geom = craft.get("alt_geom", "")
+
+        if not alt_baro:
+            return {}
+
+        if alt_baro == "ground":
+            return {}
+
+        alt_baro = float(alt_baro)
+        if alt_geom:
+            self.altitudes["alt_geom"] = float(alt_geom)
+            self.altitudes["alt_baro"] = alt_baro
+        elif "alt_baro" in self.altitudes and "alt_geom" in self.altitudes:
+            ref_alt_baro = float(self.altitudes["alt_baro"])
+            alt_baro_offset = alt_baro - ref_alt_baro
+            return {
+                "x_alt_baro_offset": alt_baro_offset,
+                "x_alt_geom": ref_alt_baro + alt_baro_offset,
+            }
+
+        return {}
 
     async def get_feed(self, url: str) -> None:
         """
