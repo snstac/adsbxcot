@@ -1,7 +1,7 @@
 
 # March 31, 2025: ADSBXCOT is Deprecated. Please use ADSBCOT.
 
-ADSBXCOT functionality has been merged into [ADSBCOT](https://adsbcot.rtfd.io)
+ADSBXCOT functionality has been merged into [ADSBCOT](https://adsbcot.readthedocs.io)
 
 ## Copyright & License
 
