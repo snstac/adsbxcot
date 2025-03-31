@@ -1,30 +1,7 @@
-![ATAK screenshot with PyTAK logo.](https://adsbcot.readthedocs.io/en/latest/media/atak_screenshot_with_pytak_logo-x25.png)
 
-# Display Aircraft in TAK - ADS-B feed to TAK Gateway 
+# March 31, 2025: ADSBXCOT is Deprecated. Please use ADSBCOT.
 
-ADSBXCOT is software for monitoring and analyzing aviation surveillance data via the Team Awareness Kit (TAK) ecosystem of products.
-
-For detailed documentation, visit the [official documentation](https://adsbxcot.rtfd.io).
-
-## Features
-
-- Converts ADS-B messages to Cursor on Target (CoT) format.
-- Compatible with TAK products: ATAK, WinTAK, and iTAK.
-- Supports multiple ADS-B data aggregators.
-- Retains aircraft track, course, speed, and metadata.
-- Runs on Python 3.7+ in both Windows and Linux environments.
-
-## Supported ADS-B Aggregators
-
-- ADS-B Exchange: https://www.adsbexchange.com/
-- adsb.fi: https://adsb.fi/
-- ADS-B Hub: https://www.adsbhub.org/
-- Airplanes.Live: https://airplanes.live/
-
-## Related Projects
-
-- [ADSBCOT](https://adsbcot.rtfd.io): For users with their own ADS-B receiver.
-- [AirTAK](https://www.snstac.com/store/p/airtak-v1): A turn-key ADS-B to TAK Gateway solution.
+ADSBXCOT functionality has been merged into [ADSBCOT](https://adsbcot.rtfd.io)
 
 ## Copyright & License
 
